@@ -1,0 +1,10 @@
+when:
+  event: push
+  branch: main
+
+steps:
+  build:
+    image: nixos/nix:latest
+    commands:
+      - echo "experimental-features = nix-command flakes" >> /etc/nix/nix.conf
+      - nix build -L
