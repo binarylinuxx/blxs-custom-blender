@@ -18,12 +18,40 @@
         pkgs = import nixpkgs {
           inherit system;
           overlays = [
-            (final: prev: {
+            (final: prev: let
+              ccacheStdenvClang = prev.ccacheStdenv.override {
+                stdenv = prev.clangStdenv;
+              };
+
+              rocmLLVM    = prev.rocmPackages.llvm.llvm;
+              rocmClang   = prev.rocmPackages.llvm.clang;
+              rocmClangUW = prev.rocmPackages.llvm.clang-unwrapped;
+
+              openshadinglanguage = (prev.openshadinglanguage.override {
+                stdenv = prev.stdenv;
+                llvmPackages_19 = prev.rocmPackages.llvm // {
+                  libclang = rocmClangUW;
+                };
+              }).overrideAttrs (old: {
+                cmakeFlags = (old.cmakeFlags or []) ++ [
+                  "-DCMAKE_C_COMPILER=${rocmClang}/bin/clang"
+                  "-DCMAKE_CXX_COMPILER=${rocmClang}/bin/clang++"
+                  "-DLLVM_DIR=${rocmLLVM.dev}/lib/cmake/llvm"
+                  "-DClang_DIR=${rocmClangUW.dev}/lib/cmake/clang"
+                  "-DCMAKE_CXX_FLAGS=-I${rocmClangUW.dev}/include"
+                  "-DCMAKE_C_FLAGS=-I${rocmClangUW.dev}/include"
+                ];
+                NIX_LDFLAGS = "${old.NIX_LDFLAGS or ""} -L${rocmClangUW.lib}/lib";
+              });
+
+            in {
+              inherit openshadinglanguage;
+              clangCcacheStdenv = ccacheStdenvClang;
               ccacheWrapper = prev.ccacheWrapper.override {
                 extraConfig = ''
                   export CCACHE_COMPRESS=1
                   export CCACHE_SLOPPINESS=random_seed
-                  export CCACHE_DIR=''${CCACHE_DIR:-/tmp/ccache}
+                  export CCACHE_DIR=''${CCACHE_DIR:-/var/cache/ccache}
                   export CCACHE_UMASK=007
                 '';
               };
@@ -31,11 +59,10 @@
           ];
         };
 
-        clangCcacheStdenv = pkgs.ccacheStdenv.override {
-          stdenv = pkgs.clangStdenv;
-        };
-
-        rocmPackages = pkgs.rocmPackages;
+        clangCcacheStdenv = pkgs.clangCcacheStdenv;
+        rocmPackages      = pkgs.rocmPackages;
+        rocmLLVM          = rocmPackages.llvm.llvm;
+        rocmClangUW       = rocmPackages.llvm.clang-unwrapped;
 
         rocmAvailable = pkgs.lib.hasSuffix "linux" system && pkgs.stdenv.hostPlatform.isx86_64;
 
@@ -48,7 +75,6 @@
             && (baseNameOf path != "flake.lock");
         };
 
-        # Official release tarball provides real files for LFS pointers in the repo
         blenderDataSrc = pkgs.fetchzip {
           name = "blender-data";
           url = "https://download.blender.org/source/blender-5.1.2.tar.xz";
@@ -56,7 +82,6 @@
         };
 
         commonPreConfigure = ''
-          # Replace remaining Git LFS pointer files with real ones from the release tarball
           find . -type f -exec grep -l "git-lfs.github.com" {} + 2>/dev/null \
             | while IFS= read -r f; do
                 relpath=$(echo "$f" | sed 's|^\./||')
@@ -84,14 +109,13 @@
             stdenv = clangCcacheStdenv;
             inherit rocmSupport;
             python313Packages = pkgs.python313Packages;
-            rocmPackages = pkgs.rocmPackages;
+            rocmPackages      = pkgs.rocmPackages;
           }).overrideAttrs (old: {
             inherit src;
             version = "5.2.0-alpha";
-            pname = bname;
+            pname   = bname;
 
             patches = pkgs.lib.optionals rocmSupport [
-              # Backport of hiprt 3.x support
               ./hiprt-3-compat.patch
             ];
 
@@ -111,6 +135,12 @@
               substituteInPlace extern/hipew/src/hipew.c \
                 --replace-fail '"opt/rocm/hip/bin"' \
                 '"${pkgs.rocmPackages.clr}/bin"'
+            '';
+
+            postFixup = pkgs.lib.optionalString rocmSupport ''
+              patchelf --add-rpath \
+                "${rocmLLVM.lib}/lib:${rocmClangUW.lib}/lib" \
+                "$out/bin/.blender-wrapped"
             '';
 
             cmakeFlags =
