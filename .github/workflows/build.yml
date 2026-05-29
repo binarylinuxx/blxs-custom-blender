@@ -13,11 +13,11 @@ jobs:
       - uses: actions/checkout@v4
 
       - uses: DeterminateSystems/nix-installer-action@main
+        with:
+          extra-conf: |
+            experimental-features = nix-command flakes
 
       - uses: DeterminateSystems/magic-nix-cache-action@main
-
-      - name: Configure Nix
-        run: echo "experimental-features = nix-command flakes" >> /etc/nix/nix.conf
 
       - name: Build Blender
         run: nix build -L
