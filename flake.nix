@@ -23,7 +23,7 @@
                 extraConfig = ''
                   export CCACHE_COMPRESS=1
                   export CCACHE_SLOPPINESS=random_seed
-                  export CCACHE_DIR=''${CCACHE_DIR:-/tmp/ccache}
+                  export CCACHE_DIR=''${CCACHE_DIR:-/var/cache/ccache}
                   export CCACHE_UMASK=007
                 '';
               };
@@ -56,9 +56,6 @@
         };
 
         commonPreConfigure = ''
-          cp -a "$src"/* .
-          chmod -R u+w .
-
           # Replace remaining Git LFS pointer files with real ones from the release tarball
           find . -type f -exec grep -l "git-lfs.github.com" {} + 2>/dev/null \
             | while IFS= read -r f; do
@@ -93,25 +90,34 @@
             version = "5.2.0-alpha";
             pname = bname;
 
-            patches = [ ] ++ pkgs.lib.optionals rocmSupport [
+            patches = pkgs.lib.optionals rocmSupport [
               # Backport of hiprt 3.x support
               ./hiprt-3-compat.patch
             ];
 
             dontUnpack = true;
 
+            prePatch = ''
+              cp -a "$src"/* .
+              chmod -R u+w .
+            '';
+
             preConfigure = commonPreConfigure;
+
+            postPatch = pkgs.lib.optionalString rocmSupport ''
+              substituteInPlace extern/hipew/src/hipew.c \
+                --replace-fail '"/opt/rocm/hip/lib/libamdhip64.so.${pkgs.lib.versions.major pkgs.rocmPackages.clr.version}"' \
+                '"${pkgs.rocmPackages.clr}/lib/libamdhip64.so"'
+              substituteInPlace extern/hipew/src/hipew.c \
+                --replace-fail '"opt/rocm/hip/bin"' \
+                '"${pkgs.rocmPackages.clr}/bin"'
+            '';
 
             cmakeFlags =
               old.cmakeFlags
               ++ [
                 "-DWITH_HYDRA:BOOL=FALSE"
                 "-DWITH_STRICT_BUILD_OPTIONS:BOOL=FALSE"
-              ]
-              ++ pkgs.lib.optionals rocmSupport [
-                "-DWITH_CYCLES_DEVICE_HIP:BOOL=TRUE"
-                "-DWITH_CYCLES_DEVICE_HIPRT:BOOL=TRUE"
-                "-DWITH_CYCLES_HIP_BINARIES:BOOL=TRUE"
               ];
 
             meta = old.meta // commonMeta // {
@@ -119,22 +125,9 @@
             };
           });
       in
-      let
-        hipPkg = pkgs.lib.optionals rocmAvailable [
-          (mkBlender {
-            rocmSupport = true;
-            pnameSuffix = "-hip";
-          })
-        ];
-      in
       {
-        packages = {
-          default = mkBlender { };
-        } // pkgs.lib.optionalAttrs rocmAvailable {
-          hip = mkBlender {
-            rocmSupport = true;
-            pnameSuffix = "-hip";
-          };
+        packages.default = mkBlender {
+          rocmSupport = rocmAvailable;
         };
         devShells.default = pkgs.mkShell {
           inputsFrom = [ self.packages.${system}.default ];

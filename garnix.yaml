@@ -1,0 +1,6 @@
+builds:
+  include:
+    - "packages.x86_64-linux.default"
+  exclude:
+    - "devShells.*.*"
+  branch: main
