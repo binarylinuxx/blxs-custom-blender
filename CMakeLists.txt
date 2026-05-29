@@ -2454,7 +2454,9 @@ endif()
 # -----------------------------------------------------------------------------
 # Add Testing Directory
 
-add_subdirectory(tests)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tests)
+  add_subdirectory(tests)
+endif()
 
 
 # -----------------------------------------------------------------------------
