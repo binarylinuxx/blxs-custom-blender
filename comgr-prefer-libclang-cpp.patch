@@ -1,0 +1,24 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -406,14 +406,14 @@ install(FILES
+   COMPONENT amd-comgr
+   DESTINATION "${CMAKE_INSTALL_LIBDIR}/${AMD_COMGR_PACKAGE_PREFIX}")
+ 
+-if(TARGET clangFrontendTool)
++if(TARGET clang-cpp)
++  set(CLANG_LIBS
++    clang-cpp)
++else()
+   set(CLANG_LIBS
+     clangBasic
+     clangDriver
+     clangSerialization
+     clangFrontend
+     clangFrontendTool)
+-else()
+-  set(CLANG_LIBS
+-    clang-cpp)
+ endif()
+ 
+ set(LLD_LIBS

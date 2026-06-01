@@ -46,6 +46,13 @@
 
             in {
               inherit openshadinglanguage;
+              rocmPackages = prev.rocmPackages // {
+                rocm-comgr = prev.rocmPackages.rocm-comgr.overrideAttrs (old: {
+                  patches = (old.patches or []) ++ [
+                    ./comgr-prefer-libclang-cpp.patch
+                  ];
+                });
+              };
               clangCcacheStdenv = ccacheStdenvClang;
               ccacheWrapper = prev.ccacheWrapper.override {
                 extraConfig = ''
@@ -137,10 +144,17 @@
                 '"${pkgs.rocmPackages.clr}/bin"'
             '';
 
+            buildInputs = (old.buildInputs or []) ++ pkgs.lib.optionals rocmSupport [
+              pkgs.rocmPackages.rocm-comgr
+            ];
+
             postFixup = pkgs.lib.optionalString rocmSupport ''
               patchelf --add-rpath \
-                "${rocmLLVM.lib}/lib:${rocmClangUW.lib}/lib" \
+                "${rocmLLVM.lib}/lib:${rocmClangUW.lib}/lib:${pkgs.rocmPackages.rocm-comgr}/lib" \
                 "$out/bin/.blender-wrapped"
+              substituteInPlace "$out/bin/blender" \
+                --replace-fail 'exec -a "$0" ' \
+                'export LD_LIBRARY_PATH="${pkgs.rocmPackages.rocm-comgr}/lib:${rocmClangUW.lib}/lib:${rocmLLVM.lib}/lib''${LD_LIBRARY_PATH:+:}''${LD_LIBRARY_PATH}"; exec -a "$0" '
             '';
 
             cmakeFlags =
