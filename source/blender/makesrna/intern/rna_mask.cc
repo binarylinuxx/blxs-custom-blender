@@ -28,10 +28,10 @@
 
 #  include "DNA_movieclip_types.h"
 
-#  include "BLI_listbase.h"
-#  include "BLI_math_vector.h"
-#  include "BLI_string.h"
-#  include "BLI_string_utf8.h"
+#  include "BLI_listbase.hh"
+#  include "BLI_math_vector_c.hh"
+#  include "BLI_string.hh"
+#  include "BLI_string_utf8.hh"
 
 #  include "BKE_mask.hh"
 #  include "BKE_movieclip.hh"
@@ -335,7 +335,7 @@ static void rna_MaskSplinePoint_handle_type_set(PointerRNA *ptr, int value)
   BezTriple *bezt = &point->bezt;
   MaskSpline *spline = mask_spline_from_point(id_cast<Mask *>(ptr->owner_id), point);
 
-  bezt->h1 = bezt->h2 = value;
+  bezt->h1 = bezt->h2 = eBezTriple_Handle(value);
   mask_point_check_stick(point);
   BKE_mask_calc_handle_point(spline, point);
 }
@@ -354,7 +354,7 @@ static void rna_MaskSplinePoint_handle_left_type_set(PointerRNA *ptr, int value)
   BezTriple *bezt = &point->bezt;
   MaskSpline *spline = mask_spline_from_point(id_cast<Mask *>(ptr->owner_id), point);
 
-  bezt->h1 = value;
+  bezt->h1 = eBezTriple_Handle(value);
   mask_point_check_stick(point);
   BKE_mask_calc_handle_point(spline, point);
 }
@@ -373,7 +373,7 @@ static void rna_MaskSplinePoint_handle_right_type_set(PointerRNA *ptr, int value
   BezTriple *bezt = &point->bezt;
   MaskSpline *spline = mask_spline_from_point(id_cast<Mask *>(ptr->owner_id), point);
 
-  bezt->h2 = value;
+  bezt->h2 = eBezTriple_Handle(value);
   mask_point_check_stick(point);
   BKE_mask_calc_handle_point(spline, point);
 }

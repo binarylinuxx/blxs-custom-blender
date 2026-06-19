@@ -12,7 +12,7 @@
  */
 
 #include "BLI_bounds.hh"
-#include "BLI_math_base.h"
+#include "BLI_math_base_c.hh"
 #include "BLI_math_matrix.hh"
 
 #include "BKE_curve.hh"
@@ -20,7 +20,7 @@
 #include "BKE_mesh.h"
 #include "BKE_object.hh"
 #include "BKE_volume.hh"
-#include "BLI_hash.h"
+#include "BLI_hash_c.hh"
 #include "DNA_curve_types.h"
 #include "DNA_layer_types.h"
 #include "DNA_meta_types.h"
@@ -120,7 +120,7 @@ inline void ObjectInfos::sync(const draw::ObjectRef ref,
     shadow_terminator_normal_offset = 0.0f;
   }
 
-  random = ref.random();
+  random = ref.random(0);
 
   if (ref.object->data == nullptr) {
     orco_add = float3(0.0f);

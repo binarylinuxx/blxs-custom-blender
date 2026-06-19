@@ -4,7 +4,7 @@ linking to external resources instead of including content in-line.
 See 'release/text/readme.html' for the end user read-me.
 -->
 
-Blender(Unofficial modified by me contains GN's nodes speed optimizations)
+Blender
 =======
 
 Blender is the free and open source 3D creation suite.

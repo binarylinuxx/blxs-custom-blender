@@ -191,9 +191,9 @@ static const EnumPropertyItem rna_enum_driver_target_context_property_items[] = 
 
 #  include "DNA_scene_types.h"
 
-#  include "BLI_listbase.h"
-#  include "BLI_string.h"
-#  include "BLI_string_utf8.h"
+#  include "BLI_listbase.hh"
+#  include "BLI_string.hh"
+#  include "BLI_string_utf8.hh"
 
 #  include "ANIM_action.hh"
 #  include "ANIM_fcurve.hh"
@@ -327,7 +327,7 @@ static void rna_DriverTarget_update_data(Main *bmain, Scene *scene, PointerRNA *
   DriverTarget *dtar = static_cast<DriverTarget *>(ptr->data);
   FCurve *fcu = rna_FCurve_find_driver_by_target(ptr->owner_id, dtar);
   BLI_assert(fcu); /* This hints at an internal error, data may be corrupt. */
-  if (UNLIKELY(fcu == nullptr)) {
+  if (fcu == nullptr) [[unlikely]] {
     return;
   }
   /* Find function ensures it's never nullptr. */
@@ -341,7 +341,7 @@ static void rna_DriverVariable_update_name(Main *bmain, Scene *scene, PointerRNA
   DriverVar *dvar = static_cast<DriverVar *>(ptr->data);
   FCurve *fcu = rna_FCurve_find_driver_by_variable(ptr->owner_id, dvar);
   BLI_assert(fcu); /* This hints at an internal error, data may be corrupt. */
-  if (UNLIKELY(fcu == nullptr)) {
+  if (fcu == nullptr) [[unlikely]] {
     return;
   }
   /* Find function ensures it's never nullptr. */
@@ -356,7 +356,7 @@ static void rna_DriverVariable_update_data(Main *bmain, Scene *scene, PointerRNA
   DriverVar *dvar = static_cast<DriverVar *>(ptr->data);
   FCurve *fcu = rna_FCurve_find_driver_by_variable(ptr->owner_id, dvar);
   BLI_assert(fcu); /* This hints at an internal error, data may be corrupt. */
-  if (UNLIKELY(fcu == nullptr)) {
+  if (fcu == nullptr) [[unlikely]] {
     return;
   }
   /* Find function ensures it's never nullptr. */
@@ -475,7 +475,7 @@ static void rna_DriverVariable_type_set(PointerRNA *ptr, int value)
   DriverVar *dvar = static_cast<DriverVar *>(ptr->data);
 
   /* call the API function for this */
-  driver_change_variable_type(dvar, value);
+  driver_change_variable_type(dvar, eDriverVar_Types(value));
 }
 
 void rna_DriverVariable_name_set(PointerRNA *ptr, const char *value)

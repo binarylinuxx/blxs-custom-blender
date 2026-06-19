@@ -20,7 +20,11 @@ namespace gpu {
 class Texture;
 }
 
-struct ExrHandle;
+namespace bke {
+class BlenderProject;
+}
+
+struct ExrReadHandle;
 struct ImBuf;
 struct Image;
 struct ImageFormatData;
@@ -198,23 +202,23 @@ void RE_FreeViewRender(struct ViewRender *view_render);
 /**
  * Only called on exit.
  */
-void RE_FreeAllRender(void);
+void RE_FreeAllRender();
 
 /**
  * On file load, free all interactive compositor renders.
  */
-void RE_FreeInteractiveCompositorRenders(void);
+void RE_FreeInteractiveCompositorRenders();
 
 /**
  * On file load, free render results.
  */
-void RE_FreeAllRenderResults(void);
+void RE_FreeAllRenderResults();
 
 /**
  * On file load or changes engines, free persistent render data.
  * Assumes no engines are currently rendering.
  */
-void RE_FreeAllPersistentData(void);
+void RE_FreeAllPersistentData();
 /**
  * Free persistent render data, optionally only for the given scene.
  */
@@ -223,13 +227,13 @@ void RE_FreePersistentData(const struct Scene *scene);
 /**
  * Free cached GPU textures to reduce memory usage.
  */
-void RE_FreeGPUTextureCaches(void);
+void RE_FreeGPUTextureCaches();
 
 /**
  * Free cached GPU textures, contexts and compositor to reduce memory usage,
  * when nothing in the UI requires them anymore.
  */
-void RE_FreeUnusedGPUResources(void);
+void RE_FreeUnusedGPUResources();
 
 /**
  * Get results and statistics.
@@ -265,10 +269,9 @@ void RE_ClearResult(struct Render *re);
 struct RenderStats *RE_GetStats(struct Render *re);
 
 /**
- * Caller is responsible for allocating `rect` in correct size!
+ * Caller is responsible for allocating `dst` in correct size!
  */
-void RE_ResultGet32(struct Render *re, unsigned int *rect);
-void RE_ResultGetFloat(struct Render *re, float *rect);
+void RE_ResultGet32(Render *re, uint8_t *dst);
 
 bool RE_ResultIsMultiView(struct RenderResult *rr);
 
@@ -350,6 +353,7 @@ void RE_init_threadcount(Render *re);
 
 bool RE_WriteRenderViewsMovie(struct ReportList *reports,
                               struct RenderResult *rr,
+                              const bke::BlenderProject *project,
                               struct Scene *scene,
                               struct RenderData *rd,
                               struct MovieWriter **movie_writers,
@@ -411,7 +415,7 @@ void RE_PreviewRender(struct Render *re, struct Main *bmain, struct Scene *scene
 bool RE_ReadRenderResult(struct Scene *scene, struct Scene *scenode);
 
 struct RenderResult *RE_MultilayerConvert(
-    ExrHandle *exrhandle, const char *colorspace, bool predivide, int rectx, int recty);
+    ExrReadHandle *exrhandle, const char *colorspace, bool predivide, int rectx, int recty);
 
 /**
  * Display, event callbacks and GPU contexts

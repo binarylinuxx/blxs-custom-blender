@@ -10,9 +10,9 @@
 
 #include "MEM_guardedalloc.h"
 
-#include "BLI_listbase.h"
-#include "BLI_math_rotation.h"
-#include "BLI_math_vector.h"
+#include "BLI_listbase.hh"
+#include "BLI_math_rotation_c.hh"
+#include "BLI_math_vector_c.hh"
 
 #include "BKE_context.hh"
 
@@ -177,9 +177,9 @@ struct SmoothView3DStore {
    * When smooth-view is enabled, store the 'rv3d->view' here,
    * assign back when the view motion is completed.
    */
-  char org_view;
+  eRegionView3D_View org_view;
   /** Same behavior as `view`. */
-  char org_view_axis_roll;
+  eRegionView3D_ViewAxisRoll org_view_axis_roll;
 
   double time_allowed;
 };

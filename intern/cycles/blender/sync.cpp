@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0 */
 
 #include "BKE_appdir.hh"
+#include "BKE_scene.hh"
 #include "DEG_depsgraph_query.hh"
 #include "DNA_scene_types.h"
 #include "DNA_userdef_types.h"
@@ -187,7 +188,7 @@ void BlenderSync::sync_recalc(blender::Depsgraph &b_depsgraph,
           }
 
           if (updated_geometry) {
-            if (!BLI_listbase_is_empty(&b_ob->particlesystem)) {
+            if (!b_ob->particlesystem.is_empty()) {
               particle_system_map.set_recalc(b_ob);
             }
           }
@@ -224,7 +225,7 @@ void BlenderSync::sync_recalc(blender::Depsgraph &b_depsgraph,
       }
       shader_map.set_recalc(b_id);
     }
-    /* World */
+    /* Scene */
     else if (GS(b_id->name) == blender::ID_SCE) {
       shader_map.set_recalc(b_id);
     }
@@ -303,8 +304,14 @@ void BlenderSync::sync_data(blender::RenderData &b_render,
 {
   /* For auto refresh images. */
   ImageManager *image_manager = scene->image_manager.get();
-  const int frame = b_scene->r.cfra;
+  const float frame = BKE_scene_frame_get(b_scene);
+  const bool frame_update = frame_last_synced != frame;
   const bool auto_refresh_update = image_manager->set_animation_frame_update(frame);
+
+  if (frame_update) {
+    frame_last_synced = frame;
+    has_updates_ = true;
+  }
 
   if (!has_updates_ && !auto_refresh_update) {
     return;
@@ -318,20 +325,17 @@ void BlenderSync::sync_data(blender::RenderData &b_render,
    * implicit check on whether it is a background render or not. What is the nicer thing here? */
   const bool background = !b_v3d;
 
+  sync_scene_attributes();
   sync_view_layer(b_view_layer);
   sync_integrator(b_view_layer, background, denoise_device_info);
   sync_film(b_view_layer, b_screen, b_v3d);
-  sync_shaders(b_depsgraph, b_screen, b_v3d, auto_refresh_update);
+  sync_shaders(b_depsgraph, b_screen, b_v3d, auto_refresh_update, frame_update);
   sync_images();
 
   geometry_synced.clear(); /* use for objects and motion sync */
 
-  if (scene->need_motion() == Scene::MOTION_NONE || scene->need_motion() == Scene::MOTION_PASS ||
-      scene->camera->get_motion_position() == MOTION_POSITION_CENTER)
-  {
-    sync_objects(b_depsgraph, b_screen, b_v3d);
-  }
-  sync_motion(b_render, b_depsgraph, b_screen, b_v3d, b_rv3d, width, height, python_thread_state);
+  sync_objects_and_motion(
+      b_render, b_depsgraph, b_screen, b_v3d, b_rv3d, width, height, python_thread_state);
 
   geometry_synced.clear();
 
@@ -377,6 +381,27 @@ void BlenderSync::sync_integrator(blender::ViewLayer &b_view_layer,
   integrator->set_caustics_reflective(get_boolean(cscene, "caustics_reflective"));
   integrator->set_caustics_refractive(get_boolean(cscene, "caustics_refractive"));
   integrator->set_filter_glossy(get_float(cscene, "blur_glossy"));
+
+  integrator->set_use_pixel_jitter(get_boolean(cscene, "use_pixel_jitter"));
+
+  bool use_custom_pixel_jitter_sample = false;
+  blender::PropertyRNA *override_pixel_jitter_sample_prop = RNA_struct_find_property(
+      &scene_rna_ptr, "[\"override_pixel_jitter_sample\"]");
+  if (override_pixel_jitter_sample_prop) {
+    const int array_length = RNA_property_array_length(&scene_rna_ptr,
+                                                       override_pixel_jitter_sample_prop);
+    if (array_length == 2) {
+      array<float> pixel_jitter_sample_arr(2);
+      RNA_property_float_get_array(
+          &scene_rna_ptr, override_pixel_jitter_sample_prop, &pixel_jitter_sample_arr[0]);
+      integrator->set_custom_pixel_jitter_sample(pixel_jitter_sample_arr);
+      use_custom_pixel_jitter_sample = true;
+    }
+    else if (array_length != 0) {
+      printf("%s: scene.custom_pixel_jitter_sample length is not 0 or 2.\n", __func__);
+    }
+  }
+  integrator->set_use_custom_pixel_jitter_sample(use_custom_pixel_jitter_sample);
 
   int seed = get_int(cscene, "seed");
   if (get_boolean(cscene, "use_animated_seed")) {
@@ -563,6 +588,20 @@ void BlenderSync::sync_integrator(blender::ViewLayer &b_view_layer,
   integrator->tag_update(scene, Integrator::UPDATE_NONE);
 }
 
+/* Scene Attributes */
+
+void BlenderSync::sync_scene_attributes()
+{
+  SceneAttributes *scene_attribute = scene->scene_attribute;
+
+  blender::Scene *scene = b_scene;
+  float frame = BKE_scene_frame_get(b_scene);
+  float time = FRA2TIME(frame);
+
+  scene_attribute->set_time(time);
+  scene_attribute->set_frame(frame);
+}
+
 /* Film */
 
 void BlenderSync::sync_film(blender::ViewLayer &b_view_layer,
@@ -616,6 +655,12 @@ void BlenderSync::sync_film(blender::ViewLayer &b_view_layer,
   else {
     film->set_use_approximate_shadow_catcher(!get_boolean(crl, "use_pass_shadow_catcher"));
   }
+
+  /* Denoising passes. */
+  film->set_denoising_pass_follow_reflections(
+      get_boolean(crl, "denoising_pass_follow_reflections"));
+  film->set_denoising_pass_use_albedo_roughness_weighting(
+      get_boolean(crl, "denoising_pass_use_albedo_roughness_weighting"));
 }
 
 /* Render Layer */
@@ -740,6 +785,7 @@ static bool get_known_pass_type(blender::RenderPass &b_pass, PassType &type, Pas
   MAP_PASS("Denoising Normal", PASS_DENOISING_NORMAL, true);
   MAP_PASS("Denoising Roughness", PASS_DENOISING_ROUGHNESS, true);
   MAP_PASS("Denoising Depth", PASS_DENOISING_DEPTH, true);
+  MAP_PASS("Denoising Backward Motion", PASS_DENOISING_BACKWARD_MOTION, true);
 
   MAP_PASS("Shadow Catcher", PASS_SHADOW_CATCHER, false);
   MAP_PASS("Noisy Shadow Catcher", PASS_SHADOW_CATCHER, true);
@@ -834,7 +880,7 @@ void BlenderSync::sync_render_passes(blender::RenderLayer &b_rlay,
     PassMode pass_mode = PassMode::DENOISED;
 
     if (!get_known_pass_type(b_pass, pass_type, pass_mode)) {
-      if (!expected_passes.count(b_pass.name)) {
+      if (!expected_passes.contains(b_pass.name)) {
         LOG_ERROR << "Unknown pass " << b_pass.name;
       }
       continue;
@@ -945,17 +991,22 @@ SceneParams BlenderSync::get_scene_params(blender::UserDef &b_preferences,
       csscene, "shape", CURVE_NUM_SHAPE_TYPES, CURVE_THICK);
 
   float texture_resolution;
+  int texture_limit;
   if (background) {
     texture_resolution = RNA_float_get(&cscene, "texture_resolution_render");
+    texture_limit = RNA_enum_get(&cscene, "texture_limit_render");
   }
   else {
     texture_resolution = RNA_float_get(&cscene, "texture_resolution");
+    texture_limit = RNA_enum_get(&cscene, "texture_limit");
   }
-  if (texture_resolution < 1.0f && (b_scene.r.mode & blender::R_SIMPLIFY) != 0) {
-    params.texture_resolution = texture_resolution;
+  if ((b_scene.r.mode & blender::R_SIMPLIFY) != 0) {
+    params.texture_resolution = (texture_resolution < 1.0f) ? texture_resolution : 1.0f;
+    params.texture_limit = (texture_limit > 0) ? (1 << (texture_limit + 6)) : 0;
   }
   else {
     params.texture_resolution = 1.0f;
+    params.texture_limit = 0;
   }
 
   params.bvh_layout = DebugFlags().cpu.bvh_layout;

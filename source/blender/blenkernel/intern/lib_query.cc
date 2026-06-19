@@ -13,8 +13,8 @@
 #include "DNA_anim_types.h"
 
 #include "BLI_function_ref.hh"
-#include "BLI_linklist_stack.h"
-#include "BLI_listbase.h"
+#include "BLI_linklist_stack.hh"
+#include "BLI_listbase.hh"
 #include "BLI_map.hh"
 #include "BLI_set.hh"
 #include "BLI_stack.hh"
@@ -391,7 +391,8 @@ static bool library_foreach_ID_link(Main *bmain,
       CALLBACK_INVOKE_ID(id->override_library->reference,
                          IDWALK_CB_USER | IDWALK_CB_OVERRIDE_LIBRARY_REFERENCE);
 
-      CALLBACK_INVOKE_ID(id->override_library->hierarchy_root, IDWALK_CB_LOOPBACK);
+      CALLBACK_INVOKE_ID(id->override_library->hierarchy_root,
+                         IDWALK_CB_LOOPBACK | IDWALK_CB_OVERRIDE_LIBRARY_HIERARCHY_ROOT);
       for (IDOverrideLibraryProperty &op : id->override_library->properties) {
         for (IDOverrideLibraryPropertyOperation &opop : op.operations) {
           CALLBACK_INVOKE_ID(opop.subitem_reference_id,

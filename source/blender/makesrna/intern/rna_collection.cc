@@ -13,7 +13,7 @@
 #include "DNA_collection_types.h"
 
 #include "BLI_path_utils.hh"
-#include "BLI_utildefines.h"
+#include "BLI_utildefines.hh"
 
 #include "RNA_define.hh"
 #include "RNA_enum_types.hh"
@@ -55,7 +55,7 @@ BLI_STATIC_ASSERT(ARRAY_SIZE(rna_enum_collection_color_items) - 2 == COLLECTION_
 #  include "DEG_depsgraph_build.hh"
 #  include "DEG_depsgraph_query.hh"
 
-#  include "BLI_listbase.h"
+#  include "BLI_listbase.hh"
 
 #  include "BKE_collection.hh"
 #  include "BKE_global.hh"
@@ -340,7 +340,7 @@ static bool rna_Collection_children_override_apply(Main *bmain,
   return true;
 }
 
-static void rna_Collection_flag_set(PointerRNA *ptr, const bool value, const int flag)
+static void rna_Collection_flag_set(PointerRNA *ptr, const bool value, const eCollection_Flag flag)
 {
   Collection *collection = static_cast<Collection *>(ptr->data);
 
@@ -397,7 +397,7 @@ static void rna_Collection_color_tag_set(PointerRNA *ptr, int value)
     return;
   }
 
-  collection->color_tag = value;
+  collection->color_tag = CollectionColorTag(value);
 }
 
 static void rna_Collection_color_tag_update(Main * /*bmain*/, Scene *scene, PointerRNA * /*ptr*/)

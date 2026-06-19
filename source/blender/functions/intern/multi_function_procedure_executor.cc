@@ -1245,7 +1245,7 @@ MultiFunction::ExecutionHints ProcedureExecutor::get_execution_hints() const
 {
   ExecutionHints hints;
   hints.allocates_array = true;
-  hints.min_grain_size = 1000;
+  hints.min_grain_size = 10000;
   return hints;
 }
 

@@ -9,6 +9,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
@@ -19,5 +21,11 @@ jobs:
 
       - uses: DeterminateSystems/magic-nix-cache-action@main
 
+      - uses: cachix/cachix-action@v15
+        if: ${{ env.CACHIX_AUTH_TOKEN != '' }}
+        with:
+          name: blxs-custom-blender
+          authToken: ${{ env.CACHIX_AUTH_TOKEN }}
+
       - name: Build Blender
-        run: nix build -L
+        run: nix build -L .#blxs-custom-blender

@@ -2,11 +2,11 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later */
 
-#include "BLI_fileops.h"
+#include "BLI_fileops.hh"
 #include "BLI_generic_key_string.hh"
 #include "BLI_memory_cache_file_load.hh"
 #include "BLI_memory_counter.hh"
-#include "BLI_string_utf8.h"
+#include "BLI_string_utf8.hh"
 
 #include "node_geometry_util.hh"
 
@@ -28,7 +28,7 @@ static void node_declare(NodeDeclarationBuilder &b)
 class LoadTextCache : public memory_cache::CachedValue {
  public:
   std::string text;
-  Vector<geo_eval_log::NodeWarning> warnings;
+  Vector<eval_log::NodeWarning> warnings;
 
   void count_memory(MemoryCounter &counter) const override
   {
@@ -67,7 +67,7 @@ static void node_geo_exec(GeoNodeExecParams params)
         return cached_value;
       });
 
-  for (const geo_eval_log::NodeWarning &warning : cached_value->warnings) {
+  for (const eval_log::NodeWarning &warning : cached_value->warnings) {
     params.error_message_add(warning.type, warning.message);
   }
 

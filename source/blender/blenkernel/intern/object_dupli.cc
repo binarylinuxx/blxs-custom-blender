@@ -15,17 +15,17 @@
 
 #include "MEM_guardedalloc.h"
 
-#include "BLI_listbase.h"
-#include "BLI_math_vector.h"
-#include "BLI_string_utf8.h"
+#include "BLI_listbase.hh"
+#include "BLI_math_vector_c.hh"
+#include "BLI_string_utf8.hh"
 
 #include "BLI_array.hh"
-#include "BLI_hash.h"
-#include "BLI_math_geom.h"
-#include "BLI_math_matrix.h"
-#include "BLI_math_rotation.h"
+#include "BLI_hash_c.hh"
+#include "BLI_math_geom_c.hh"
+#include "BLI_math_matrix_c.hh"
+#include "BLI_math_rotation_c.hh"
 #include "BLI_math_vector.hh"
-#include "BLI_rand.h"
+#include "BLI_rand_c.hh"
 #include "BLI_set.hh"
 #include "BLI_span.hh"
 #include "BLI_string_ref.hh"
@@ -61,7 +61,7 @@
 #include "DEG_depsgraph.hh"
 #include "DEG_depsgraph_query.hh"
 
-#include "NOD_geometry_nodes_log.hh"
+#include "NOD_eval_log.hh"
 
 #include "RNA_access.hh"
 #include "RNA_path.hh"
@@ -74,7 +74,6 @@ namespace blender {
 using bke::GeometrySet;
 using bke::InstanceReference;
 using bke::Instances;
-namespace geo_log = nodes::geo_eval_log;
 
 /* -------------------------------------------------------------------- */
 /** \name Internal Duplicate Context
@@ -881,7 +880,7 @@ static void make_duplis_font(const DupliContext *ctx)
 
       copy_m4_m4(obmat, par->object_to_world().ptr());
 
-      if (UNLIKELY(ct->rotate != 0.0f)) {
+      if (ct->rotate != 0.0f) [[unlikely]] {
         float rmat[4][4];
 
         zero_v3(obmat[3]);
@@ -1454,7 +1453,7 @@ static void make_duplis_particle_system(const DupliContext *ctx, ParticleSystem 
 
       const ListBaseT<Base> dup_collection_objects = BKE_collection_object_cache_get(
           part->instance_collection);
-      if (BLI_listbase_is_empty(&dup_collection_objects)) {
+      if (dup_collection_objects.is_empty()) {
         return;
       }
 
@@ -1849,8 +1848,8 @@ void object_duplilist_preview(Depsgraph *depsgraph,
     if (!nmd_orig->runtime->eval_log) {
       continue;
     }
-    if (const geo_log::ViewerNodeLog *viewer_log =
-            geo_log::GeoNodesLog::find_viewer_node_log_for_path(*viewer_path))
+    if (const nodes::eval_log::ViewerNodeLog *viewer_log =
+            nodes::eval_log::NodesEvalLog::find_viewer_node_log_for_path(*viewer_path))
     {
       if (const bke::GeometrySet *viewer_geometry = viewer_log->main_geometry()) {
         ctx.preview_base_geometry = &*viewer_geometry;

@@ -26,10 +26,10 @@
 
 #ifdef RNA_RUNTIME
 
-#  include "BLI_listbase.h"
-#  include "BLI_math_vector.h"
-#  include "BLI_string.h"
-#  include "BLI_string_utf8.h"
+#  include "BLI_listbase.hh"
+#  include "BLI_math_vector_c.hh"
+#  include "BLI_string.hh"
+#  include "BLI_string_utf8.hh"
 
 #  include "BKE_anim_data.hh"
 #  include "BKE_animsys.h"
@@ -303,14 +303,14 @@ static void rna_trackingTrack_select_set(PointerRNA *ptr, bool value)
   MovieTrackingTrack *track = static_cast<MovieTrackingTrack *>(ptr->data);
 
   if (value) {
-    track->flag |= SELECT;
-    track->pat_flag |= SELECT;
-    track->search_flag |= SELECT;
+    track->flag |= TRACK_SELECT;
+    track->pat_flag |= TRACK_SELECT;
+    track->search_flag |= TRACK_SELECT;
   }
   else {
-    track->flag &= ~SELECT;
-    track->pat_flag &= ~SELECT;
-    track->search_flag &= ~SELECT;
+    track->flag &= ~TRACK_SELECT;
+    track->pat_flag &= ~TRACK_SELECT;
+    track->search_flag &= ~TRACK_SELECT;
   }
 }
 

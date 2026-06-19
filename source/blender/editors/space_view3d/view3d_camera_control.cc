@@ -31,9 +31,9 @@
 
 #include "MEM_guardedalloc.h"
 
-#include "BLI_math_matrix.h"
-#include "BLI_math_rotation.h"
-#include "BLI_math_vector.h"
+#include "BLI_math_matrix_c.hh"
+#include "BLI_math_rotation_c.hh"
+#include "BLI_math_vector_c.hh"
 
 #include "BKE_object.hh"
 
@@ -81,7 +81,7 @@ struct View3DCameraControl {
    * Remember if we're orthographic or not,
    * only used for restoring the view if it was a orthographic view.
    */
-  char persp_backup;
+  eRegionView3D_Persp persp_backup;
 
   /**
    * True when flying an orthographic camera in perspective view,

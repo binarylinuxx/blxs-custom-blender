@@ -16,11 +16,11 @@
 
 #include "MEM_guardedalloc.h"
 
-#include "BLI_listbase.h"
-#include "BLI_math_base.h"
+#include "BLI_listbase.hh"
+#include "BLI_math_base_c.hh"
 #include "BLI_path_utils.hh"
-#include "BLI_string_utf8.h"
-#include "BLI_utildefines.h"
+#include "BLI_string_utf8.hh"
+#include "BLI_utildefines.hh"
 
 #include "BKE_context.hh"
 #include "BKE_lib_query.hh"
@@ -109,12 +109,12 @@ static void init_preview_region(const Scene *scene,
 
     region->v2d.minzoom = 0.0f;
     region->v2d.maxzoom = 0.0f;
-    region->v2d.keepzoom = 0;
-    region->v2d.keepofs = 0;
-    region->v2d.align = 0;
-    region->v2d.flag = 0;
+    region->v2d.keepzoom = eView2D_KeepZoom{};
+    region->v2d.keepofs = eView2D_KeepOfs{};
+    region->v2d.align = eView2D_Align{};
+    region->v2d.flag = eView2D_Flag{};
 
-    region->v2d.keeptot = 0;
+    region->v2d.keeptot = eView2D_KeepTot{};
   }
 }
 

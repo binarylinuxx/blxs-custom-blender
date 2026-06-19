@@ -10,9 +10,9 @@
 
 #include <cstring>
 
-#include "BLI_listbase.h"
-#include "BLI_string.h"
-#include "BLI_utildefines.h"
+#include "BLI_listbase.hh"
+#include "BLI_string.hh"
+#include "BLI_utildefines.hh"
 
 #include "DNA_action_types.h"
 #include "DNA_constraint_types.h"
@@ -284,7 +284,8 @@ RNANodeIdentifier RNANodeQuery::construct_node_identifier(const PointerRNA *ptr,
            RNA_struct_is_a(ptr->type, RNA_MeshLoopColor) ||
            RNA_struct_is_a(ptr->type, RNA_VertexGroupElement) ||
            RNA_struct_is_a(ptr->type, RNA_ShaderFx) ||
-           (RNA_property_flag(const_cast<PropertyRNA *>(prop)) & PROP_FORCE_GEOMETRY_EVAL) != 0)
+           (prop &&
+            RNA_property_flag(const_cast<PropertyRNA *>(prop)) & PROP_FORCE_GEOMETRY_EVAL) != 0)
   {
     /* When modifier is used as FROM operation this is likely referencing to
      * the property (for example, modifier's influence).

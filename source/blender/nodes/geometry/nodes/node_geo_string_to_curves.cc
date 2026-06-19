@@ -14,7 +14,7 @@
 
 #include "BLI_bounds.hh"
 #include "BLI_math_matrix.hh"
-#include "BLI_string_utf8.h"
+#include "BLI_string_utf8.hh"
 #include "BLI_task.hh"
 
 #include "MEM_guardedalloc.h"
@@ -135,9 +135,13 @@ static void node_declare(NodeDeclarationBuilder &b)
   b.add_output<decl::Geometry>("Curve Instances"_ustr);
   b.add_output<decl::String>("Remainder"_ustr)
       .usage_by_menu("Overflow"_ustr, GEO_NODE_STRING_TO_CURVES_MODE_TRUNCATE);
-  b.add_output<decl::Int>("Line"_ustr).field_on_all().translation_context(BLT_I18NCONTEXT_ID_TEXT);
-  b.add_output<decl::Int>("Word"_ustr).field_on_all().translation_context(BLT_I18NCONTEXT_ID_TEXT);
-  b.add_output<decl::Vector>("Pivot Point"_ustr).field_on_all();
+  b.add_output<decl::Int>("Line"_ustr)
+      .anonymous_attribute_output()
+      .translation_context(BLT_I18NCONTEXT_ID_TEXT);
+  b.add_output<decl::Int>("Word"_ustr)
+      .anonymous_attribute_output()
+      .translation_context(BLT_I18NCONTEXT_ID_TEXT);
+  b.add_output<decl::Vector>("Pivot Point"_ustr).anonymous_attribute_output();
 
   b.add_input<decl::String>("String"_ustr).optional_label();
   b.add_input<decl::Float>("Size"_ustr).default_value(1.0f).min(0.0f).subtype(PROP_DISTANCE);
@@ -281,14 +285,14 @@ static std::optional<TextLayout> get_text_layout(GeoNodeExecParams &params)
   cu.smallcaps_scale = 0.75f;
   cu.wordspace = 1.0f;
   /* Set values from inputs */
-  cu.spacemode = align_x;
-  cu.align_y = align_y;
+  cu.spacemode = eCurveSpaceMode(align_x);
+  cu.align_y = eCurveAlignY(align_y);
   cu.fsize = font_size;
   cu.spacing = char_spacing;
   cu.wordspace = word_spacing;
   cu.linedist = line_spacing;
   cu.vfont = vfont;
-  cu.overflow = overflow;
+  cu.overflow = eCurveOverflow(overflow);
   cu.tb = MEM_new_array<TextBox>(MAXTEXTBOX, __func__);
   cu.tb->w = textbox_w;
   cu.tb->h = textbox_h;
@@ -525,7 +529,7 @@ static void node_register()
   ntype.declare = node_declare;
   ntype.geometry_node_execute = node_geo_exec;
   ntype.initfunc = node_init;
-  bke::node_type_size(ntype, 190, 120, 700);
+  ntype.default_width = bke::NodeWidth::_200;
   bke::node_type_storage(
       ntype, "NodeGeometryStringToCurves", node_free_standard_storage, node_copy_standard_storage);
   bke::node_register_type(ntype);

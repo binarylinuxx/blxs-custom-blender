@@ -1,9 +1,9 @@
 
 msgid ""
 msgstr ""
-"Project-Id-Version: Blender 5.2.0 Alpha (b'a0888131c6dd')\n"
+"Project-Id-Version: Blender 5.2.0 LTS Beta (b'e899b48ea546')\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-04-06 09:15+0000\n"
+"POT-Creation-Date: 2026-06-15 07:32+0000\n"
 "PO-Revision-Date: 2025-07-23 15:19+0000\n"
 "Last-Translator: Anonymous <noreply@weblate.org>\n"
 "Language-Team: Greek <https://translate.blender.org/projects/blender-ui/ui/el/>\n"
@@ -85,6 +85,14 @@ msgstr "Κενό"
 
 msgid "Active Bone"
 msgstr "Ενεργό Οστό"
+
+
+msgid "Link"
+msgstr "Σύνδεση"
+
+
+msgid "Append"
+msgstr "Συγχώνευση"
 
 
 msgid "Point"
@@ -311,14 +319,6 @@ msgid "Save"
 msgstr "Αποθήκευση"
 
 
-msgid "Link"
-msgstr "Σύνδεση"
-
-
-msgid "Append"
-msgstr "Συγχώνευση"
-
-
 msgid "End"
 msgstr "Τέλος"
 
@@ -351,6 +351,10 @@ msgid "Grid"
 msgstr "Πλέγμα"
 
 
+msgid "Dynamic"
+msgstr "Δυναμικό"
+
+
 msgid "Repeat"
 msgstr "Repeat"
 
@@ -365,10 +369,6 @@ msgstr "Μπλε"
 
 msgid "Library"
 msgstr "Βιβλιοθήκη"
-
-
-msgid "Dynamic"
-msgstr "Δυναμικό"
 
 
 msgid "Draw"
@@ -523,6 +523,10 @@ msgid "Screen"
 msgstr "Οθόνη"
 
 
+msgid "Track"
+msgstr "Ανίχνευση"
+
+
 msgid "Mirror"
 msgstr "Καθρέφτισμα"
 
@@ -531,32 +535,28 @@ msgid "Snap"
 msgstr "Προσκόλληση"
 
 
+msgid "Rigid Body"
+msgstr "Rigid Body"
+
+
 msgid "Select Linked"
 msgstr "Επιλογή Συνδεδεμένων"
-
-
-msgid "Metaball"
-msgstr "Μετα-σφαίρα"
 
 
 msgid "Import"
 msgstr "Εισαγωγή"
 
 
-msgid "Light"
-msgstr "Φως"
-
-
-msgid "Rigid Body"
-msgstr "Rigid Body"
+msgid "Metaball"
+msgstr "Μετα-σφαίρα"
 
 
 msgid "Apply"
 msgstr "Εφαρμογή"
 
 
-msgid "Track"
-msgstr "Ανίχνευση"
+msgid "Light"
+msgstr "Φως"
 
 
 msgid "Make Single User"
@@ -565,6 +565,10 @@ msgstr "Ορισμός Ενός Χρήστη"
 
 msgid "Merge"
 msgstr "Συγχώνευση"
+
+
+msgid "Linked"
+msgstr "Συνδεδεμένο/α"
 
 
 msgid "Cache"
@@ -654,10 +658,6 @@ msgstr "Nor"
 
 msgid "Bake"
 msgstr "Φτιάξε"
-
-
-msgid "Linked"
-msgstr "Συνδεδεμένο/α"
 
 
 msgid "Shadow"
@@ -981,12 +981,8 @@ msgid "Viewport Shading"
 msgstr "Σκίαση Παραθύρου Οπτικής"
 
 
-msgid "Torus"
-msgstr "Δαχτυλίδι"
-
-
-msgid "Assign"
-msgstr "Ανάθεση"
+msgid "Cancel"
+msgstr "Ακύρωση"
 
 
 msgctxt "Operator"
@@ -994,8 +990,12 @@ msgid "Clear"
 msgstr "Καθαρισμός"
 
 
-msgid "Cancel"
-msgstr "Ακύρωση"
+msgid "Torus"
+msgstr "Δαχτυλίδι"
+
+
+msgid "Assign"
+msgstr "Ανάθεση"
 
 
 msgid "Esc"

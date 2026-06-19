@@ -16,7 +16,7 @@
 #include "UnaryFunction1D_vector_ViewShape/BPy_GetOccludersF1D.h"
 #include "UnaryFunction1D_vector_ViewShape/BPy_GetShapeF1D.h"
 
-#include "BLI_sys_types.h"
+#include "BLI_sys_types.hh"
 
 using namespace Freestyle;
 
@@ -65,13 +65,17 @@ PyDoc_STRVAR(
     ":class:`Interface1D` and return a list of :class:`ViewShape`\n"
     "objects.\n"
     "\n"
-    ".. method:: __init__()\n"
-    "            __init__(integration_type)\n"
+    ".. method:: __init__(*args)\n"
+    "\n"
+    "   Accepted call signatures:\n"
+    "\n"
+    "   - ``__init__()``\n"
+    "   - ``__init__(integration_type)``\n"
     "\n"
     "   Builds a unary 1D function using the default constructor\n"
     "   or the integration method given as an argument.\n"
     "\n"
-    "   :arg integration_type: An integration method.\n"
+    "   :param integration_type: An integration method.\n"
     "   :type integration_type: :class:`IntegrationType`\n");
 static int UnaryFunction1DVectorViewShape___init__(BPy_UnaryFunction1DVectorViewShape *self,
                                                    PyObject *args,

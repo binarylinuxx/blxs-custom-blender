@@ -11,9 +11,9 @@
 #include "MEM_guardedalloc.h"
 
 #include "BLI_enum_flags.hh"
-#include "BLI_linklist_stack.h"
-#include "BLI_math_vector.h"
-#include "BLI_utildefines_stack.h"
+#include "BLI_linklist_stack.hh"
+#include "BLI_math_vector_c.hh"
+#include "BLI_utildefines_stack.hh"
 #include "BLI_vector.hh"
 
 #include "BKE_customdata.hh"
@@ -500,7 +500,7 @@ BLI_INLINE BMFace *bm_face_create__internal(BMesh *bm)
   }
 
 #ifdef USE_BMESH_HOLES
-  BLI_listbase_clear(&f->loops);
+  f->loops.clear_no_delete();
 #else
   f->l_first = nullptr;
 #endif
@@ -941,8 +941,9 @@ void BM_face_edges_kill(BMesh *bm, BMFace *f)
     edges[i++] = l_iter->e;
   } while ((l_iter = l_iter->next) != l_first);
 
-  for (i = 0; i < f->len; i++) {
-    BM_edge_kill(bm, edges[i]);
+  /* Take care, the first iteration kills `f`. */
+  for (BMEdge *e : edges) {
+    BM_edge_kill(bm, e);
   }
 }
 
@@ -958,8 +959,9 @@ void BM_face_verts_kill(BMesh *bm, BMFace *f)
     verts[i++] = l_iter->v;
   } while ((l_iter = l_iter->next) != l_first);
 
-  for (i = 0; i < f->len; i++) {
-    BM_vert_kill(bm, verts[i]);
+  /* Take care, the first iteration kills `f`. */
+  for (BMVert *v : verts) {
+    BM_vert_kill(bm, v);
   }
 }
 
@@ -1278,7 +1280,7 @@ BMFace *BM_faces_join(BMesh *bm, BMFace **faces, int totface, const bool do_del,
     *r_double = nullptr;
   }
 
-  if (UNLIKELY(!totface)) {
+  if (!totface) [[unlikely]] {
     BMESH_ASSERT(0);
     return nullptr;
   }
@@ -1362,7 +1364,7 @@ BMFace *BM_faces_join(BMesh *bm, BMFace **faces, int totface, const bool do_del,
               BM_face_create_ngon(
                   bm, v1, v2, edges.data(), edges.size(), faces[0], BM_CREATE_NOP) :
               nullptr;
-  if (UNLIKELY(f_new == nullptr)) {
+  if (f_new == nullptr) [[unlikely]] {
     /* Invalid boundary region to join faces
      * Clean up flags and fail */
     bm_elements_systag_disable(faces, totface, _FLAG_JF);
@@ -1389,7 +1391,7 @@ BMFace *BM_faces_join(BMesh *bm, BMFace **faces, int totface, const bool do_del,
 
   /* If we are *not* reusing an existing face, we need to transfer data from the faces being joined
    * to the newly created joined face. */
-  if (LIKELY(reusing_face == false)) {
+  if (reusing_face == false) [[likely]] {
 
     /* copy over loop data */
     l_iter = l_first = BM_FACE_FIRST_LOOP(f_new);

@@ -14,7 +14,7 @@
 #include "RE_bake.h"
 #include "RNA_types.hh"
 
-#include "BLI_threads.h"
+#include "BLI_threads.hh"
 
 namespace blender {
 
@@ -272,8 +272,8 @@ void RE_engine_gpu_context_unlock(struct RenderEngine *engine);
 
 /* Engine Types */
 
-void RE_engines_init(void);
-void RE_engines_exit(void);
+void RE_engines_init();
+void RE_engines_exit();
 void RE_engines_register(RenderEngineType *render_type);
 
 RenderEngineType *RE_engines_find(const char *idname);

@@ -34,15 +34,12 @@ KERNEL_DATA_ARRAY(DecomposedTransform, camera_motion)
 /* triangles */
 KERNEL_DATA_ARRAY(uint, tri_shader)
 KERNEL_DATA_ARRAY(packed_uint3, tri_vindex)
-KERNEL_DATA_ARRAY(packed_float3, tri_verts)
 
 /* curves */
 KERNEL_DATA_ARRAY(KernelCurve, curves)
-KERNEL_DATA_ARRAY(float4, curve_keys)
 KERNEL_DATA_ARRAY(KernelCurveSegment, curve_segments)
 
 /* pointclouds */
-KERNEL_DATA_ARRAY(float4, points)
 KERNEL_DATA_ARRAY(uint, points_shader)
 
 /* attributes */
@@ -92,7 +89,7 @@ KERNEL_DATA_ARRAY(float, volume_step_size)
 /* image textures */
 KERNEL_DATA_ARRAY(KernelImageTexture, image_textures)
 KERNEL_DATA_ARRAY_WRITABLE(KernelTileDescriptor, image_texture_tile_descriptors)
-KERNEL_DATA_ARRAY_WRITABLE(uint8_t, image_texture_tile_request_mask)
+KERNEL_DATA_ARRAY_WRITABLE(uint8_t, image_texture_tile_access_state)
 KERNEL_DATA_ARRAY(KernelImageUDIM, image_texture_udims)
 KERNEL_DATA_ARRAY(KernelImageInfo, image_info)
 

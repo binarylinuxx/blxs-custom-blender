@@ -11,10 +11,10 @@
 #include "DNA_scene_types.h"
 #include "DNA_sequence_types.h"
 
-#include "BLI_listbase.h"
-#include "BLI_math_base.h"
-#include "BLI_string.h"
-#include "BLI_string_utf8.h"
+#include "BLI_listbase.hh"
+#include "BLI_math_base_c.hh"
+#include "BLI_string.hh"
+#include "BLI_string_utf8.hh"
 
 #include "BLT_translation.hh"
 
@@ -394,7 +394,7 @@ static bool seq_edit_split_operation_permitted_check(const Scene *scene,
     if (strip->effect_num_inputs_get() <= 1) {
       continue;
     }
-    if (effect_is_transition(StripType(strip->type))) {
+    if (effect_is_transition(strip->type)) {
       *r_error = "Splitting transition effect is not permitted.";
       return false;
     }

@@ -2,7 +2,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later */
 
-#include "BLI_string_utf8.h"
+#include "BLI_string_utf8.hh"
 
 #include "node_function_util.hh"
 
@@ -80,7 +80,7 @@ static void node_register()
 {
   static bke::bNodeType ntype;
 
-  fn_node_type_base(&ntype, "FunctionNodeFindInString"_ustr, FN_NODE_FIND_IN_STRING);
+  fn_cmp_node_type_base(&ntype, "FunctionNodeFindInString"_ustr, FN_NODE_FIND_IN_STRING);
   ntype.ui_name = "Find in String";
   ntype.ui_description =
       "Find the number of times a given string occurs in another string and the position of the "

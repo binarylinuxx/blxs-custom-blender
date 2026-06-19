@@ -8,7 +8,7 @@
 #include "BKE_volume_grid.hh"
 #include "BKE_volume_openvdb.hh"
 
-#include "BLI_task.hh"
+#include "GEO_grid_samplers.hh"
 
 #include "NOD_rna_define.hh"
 #include "NOD_socket_search_link.hh"
@@ -18,10 +18,6 @@
 
 #include "RNA_enum_types.hh"
 
-#ifdef WITH_OPENVDB
-#  include <openvdb/tools/Interpolation.h>
-#endif
-
 #include "node_geometry_util.hh"
 
 namespace blender::nodes::node_geo_sample_grid_cc {
@@ -30,12 +26,14 @@ enum class InterpolationMode {
   Nearest = 0,
   TriLinear = 1,
   TriQuadratic = 2,
+  TriCubic = 3,
 };
 
 static const EnumPropertyItem interpolation_mode_items[] = {
     {int(InterpolationMode::Nearest), "NEAREST", 0, N_("Nearest Neighbor"), ""},
     {int(InterpolationMode::TriLinear), "TRILINEAR", 0, N_("Trilinear"), ""},
     {int(InterpolationMode::TriQuadratic), "TRIQUADRATIC", 0, N_("Triquadratic"), ""},
+    {int(InterpolationMode::TriCubic), "TRICUBIC", 0, N_("Tricubic"), ""},
     {0, nullptr, 0, nullptr, nullptr},
 };
 
@@ -48,14 +46,19 @@ static void node_declare(NodeDeclarationBuilder &b)
   const eNodeSocketDatatype data_type = eNodeSocketDatatype(node->custom1);
 
   b.add_input(data_type, "Grid"_ustr).hide_value().structure_type(StructureType::Grid);
-  b.add_input<decl::Vector>("Position"_ustr).implicit_field(NODE_DEFAULT_INPUT_POSITION_FIELD);
+  auto &position = b.add_input<decl::Vector>("Position"_ustr)
+                       .default_input_type(NODE_DEFAULT_INPUT_POSITION_FIELD)
+                       .structure_type(StructureType::Dynamic);
   b.add_input<decl::Menu>("Interpolation"_ustr)
       .static_items(interpolation_mode_items)
       .default_value(InterpolationMode::TriLinear)
       .optional_label()
       .description("How to interpolate the values between neighboring voxels");
 
-  b.add_output(data_type, "Value"_ustr).dependent_field({1});
+  const std::array<int, 1> dynamic_inputs = {position.index()};
+  b.add_output(data_type, "Value"_ustr)
+      .inferred_structure_type(dynamic_inputs)
+      .propagate_references(dynamic_inputs);
 }
 
 static std::optional<eNodeSocketDatatype> node_type_for_socket_type(const bNodeSocket &socket)
@@ -88,7 +91,7 @@ static void node_gather_link_search_ops(GatherLinkSearchOpParams &params)
       node.custom1 = *node_type;
       params.update_and_connect_available_socket(node, "Grid"_ustr);
     });
-    const eNodeSocketDatatype other_type = eNodeSocketDatatype(params.other_socket().type);
+    const eNodeSocketDatatype other_type = params.other_socket().type;
     if (params.node_tree().typeinfo->validate_link(other_type, SOCK_VECTOR)) {
       params.add_item(IFACE_("Position"), [](LinkSearchOpParams &params) {
         bNode &node = params.add_node("GeometryNodeSampleGrid"_ustr);
@@ -123,21 +126,16 @@ void sample_grid(const bke::OpenvdbGridType<T> &grid,
   using GridValueT = typename GridType::ValueType;
   using AccessorT = typename GridType::ConstUnsafeAccessor;
   using TraitsT = typename bke::VolumeGridTraits<T>;
-  const openvdb::math::Transform &transform = grid.transform();
+  AccessorT accessor = grid.getConstUnsafeAccessor();
 
   auto sample_data = [&]<typename Sampler>() {
-    threading::parallel_for(mask.index_range(), 512, [&](const IndexRange range) {
-      /* Each thread gets its own accessor with its own leaf node cache. */
-      AccessorT accessor = grid.getConstUnsafeAccessor();
-      const IndexMask slice = mask.slice(range);
-      slice.foreach_index([&](const int64_t i) {
-        const float3 &pos = positions[i];
-        const openvdb::Vec3R world_pos(pos.x, pos.y, pos.z);
-        const openvdb::Vec3R index_pos = transform.worldToIndex(world_pos);
-        GridValueT value;
-        Sampler::sample(accessor, index_pos, value);
-        dst[i] = TraitsT::to_blender(value);
-      });
+    mask.foreach_index([&](const int64_t i) {
+      const float3 &pos = positions[i];
+      const openvdb::Vec3R world_pos(pos.x, pos.y, pos.z);
+      const openvdb::Vec3R index_pos = grid.transform().worldToIndex(world_pos);
+      GridValueT value;
+      Sampler::sample(accessor, index_pos, value);
+      dst[i] = TraitsT::to_blender(value);
     });
   };
 
@@ -147,16 +145,20 @@ void sample_grid(const bke::OpenvdbGridType<T> &grid,
     real_interpolation = InterpolationMode::Nearest;
   }
   switch (real_interpolation) {
+    case InterpolationMode::Nearest: {
+      sample_data.template operator()<geometry::NearestPointSampler>();
+      break;
+    }
     case InterpolationMode::TriLinear: {
-      sample_data.template operator()<openvdb::tools::BoxSampler>();
+      sample_data.template operator()<geometry::LinearSampler>();
       break;
     }
     case InterpolationMode::TriQuadratic: {
-      sample_data.template operator()<openvdb::tools::QuadraticSampler>();
+      sample_data.template operator()<geometry::QuadraticBSplineSampler>();
       break;
     }
-    case InterpolationMode::Nearest: {
-      sample_data.template operator()<openvdb::tools::PointSampler>();
+    case InterpolationMode::TriCubic: {
+      sample_data.template operator()<geometry::CubicBSplineSampler>();
       break;
     }
   }
@@ -187,14 +189,6 @@ class SampleGridFunction : public mf::MultiFunction {
 
     grid_base_ = &grid_->grid(tree_token_);
     grid_type_ = grid_->grid_type();
-  }
-
-  ExecutionHints get_execution_hints() const override
-  {
-    ExecutionHints hints;
-    hints.min_grain_size = 512;
-    hints.uniform_execution_time = false;
-    return hints;
   }
 
   void call(const IndexMask &mask, mf::Params params, mf::Context /*context*/) const override

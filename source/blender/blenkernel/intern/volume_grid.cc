@@ -6,7 +6,6 @@
 #include "BKE_volume_grid_process.hh"
 #include "BKE_volume_openvdb.hh"
 
-#include "BLI_array.hh"
 #include "BLI_index_mask.hh"
 #include "BLI_memory_counter.hh"
 #include "BLI_task.hh"
@@ -779,6 +778,82 @@ void set_tile_values(openvdb::GridBase &grid_base,
   });
 }
 
+void set_leaf_values_off(openvdb::GridBase &grid_base,
+                         const openvdb::Coord &probe_coord,
+                         const Span<bool> selection)
+{
+  to_typed_grid(grid_base, [&](auto &grid) {
+    using GridType = std::decay_t<decltype(grid)>;
+    using TreeType = typename GridType::TreeType;
+    using LeafNodeType = typename TreeType::LeafNodeType;
+    using NodeMaskType = typename LeafNodeType::NodeMaskType;
+
+    BLI_assert(selection.size() <= LeafNodeType::SIZE);
+
+    TreeType &tree = grid.tree();
+    LeafNodeType *leaf_node = tree.probeLeaf(probe_coord);
+    BLI_assert(leaf_node);
+    NodeMaskType &mask = leaf_node->getValueMask();
+
+    for (const int i : selection.index_range()) {
+      if (selection[i]) {
+        mask.setOff(i);
+      }
+    }
+  });
+}
+
+void set_grid_values_off(openvdb::GridBase &grid_base,
+                         const Span<bool> selection,
+                         const Span<openvdb::Coord> voxels)
+{
+  to_typed_grid(grid_base, [&](auto &grid) {
+    auto accessor = grid.getUnsafeAccessor();
+    for (const int i : selection.index_range()) {
+      if (selection[i]) {
+        accessor.setValueOff(voxels[i]);
+      }
+    }
+  });
+}
+
+void set_tile_values_off(openvdb::GridBase &grid_base,
+                         const Span<bool> selection,
+                         const Span<openvdb::CoordBBox> tiles)
+{
+  to_typed_grid(grid_base, [&](auto &grid) {
+    using GridT = typename std::decay_t<decltype(grid)>;
+    using TreeT = typename GridT::TreeType;
+    auto &tree = grid.tree();
+
+    const auto set_tile_value_off = [&](auto &node, const openvdb::Coord &coord_in_tile) {
+      const openvdb::Index n = node.coordToOffset(coord_in_tile);
+      node.setValueOffUnsafe(n);
+    };
+
+    for (const int i : selection.index_range()) {
+      if (!selection[i]) {
+        continue;
+      }
+
+      const openvdb::CoordBBox tile = tiles[i];
+      const openvdb::Coord coord_in_tile = tile.min();
+      using InternalNode1 = typename TreeT::RootNodeType::ChildNodeType;
+      using InternalNode2 = typename InternalNode1::ChildNodeType;
+      /* Find the internal node that contains the tile and update the value in there. */
+      if (auto *node = tree.template probeNode<InternalNode2>(coord_in_tile)) {
+        set_tile_value_off(*node, coord_in_tile);
+      }
+      else if (auto *node = tree.template probeNode<InternalNode1>(coord_in_tile)) {
+        set_tile_value_off(*node, coord_in_tile);
+      }
+      else {
+        BLI_assert_unreachable();
+      }
+    }
+  });
+}
+
 void set_mask_leaf_buffer_from_bools(openvdb::BoolGrid &grid,
                                      const Span<bool> values,
                                      const IndexMask &index_mask,
@@ -839,16 +914,11 @@ static void sample_tree_indices(const bke::OpenvdbTreeType<T> &tree,
   using TraitsT = typename bke::VolumeGridTraits<T>;
   /* Can use unsafe accessor because we know that the tree topology is not modified while we access
    * it here. This reduces a significant amount of overhead. */
-  /* Process directly in mask order with per-thread accessors. The inputs from Field to Grid /
-   * VoxelIndex are already spatially coherent (leaf-sorted by the topology traversal), so an
-   * extra sort pass adds O(n log n) overhead with little cache benefit. Each thread keeps its
-   * own ConstUnsafeAccessor whose internal leaf cache stays warm within a 512-element grain. */
-  threading::parallel_for(mask.index_range(), 512, [&](const IndexRange range) {
-    AccessorT accessor = const_cast<TreeType &>(tree).getConstUnsafeAccessor();
-    mask.slice(range).foreach_index([&](const int64_t i) {
-      TreeValueT value = accessor.getValue(openvdb::Coord(x[i], y[i], z[i]));
-      dst[i] = TraitsT::to_blender(value);
-    });
+  AccessorT accessor = const_cast<TreeType &>(tree).getConstUnsafeAccessor();
+
+  mask.foreach_index_optimized<int64_t>([&](const int64_t i) {
+    TreeValueT value = accessor.getValue(openvdb::Coord(x[i], y[i], z[i]));
+    dst[i] = TraitsT::to_blender(value);
   });
 }
 

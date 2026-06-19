@@ -2,7 +2,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later */
 
-#include "BLI_math_vector.h"
+#include "BLI_math_vector_c.hh"
 #include "BLI_string_ref.hh"
 
 #include "DNA_node_types.h"
@@ -14,7 +14,6 @@
 
 #include "COM_shader_node.hh"
 #include "COM_utilities.hh"
-#include "COM_utilities_gpu_material.hh"
 
 namespace blender::compositor {
 
@@ -32,17 +31,17 @@ void ShaderNode::compile(GPUMaterial *material)
 
 GPUNodeStack &ShaderNode::get_input(const StringRef identifier)
 {
-  return get_shader_node_input(node_, inputs_.data(), identifier);
+  return GPU_node_get_input(node_, inputs_.data(), identifier);
 }
 
 GPUNodeStack &ShaderNode::get_output(const StringRef identifier)
 {
-  return get_shader_node_output(node_, outputs_.data(), identifier);
+  return GPU_node_get_output(node_, outputs_.data(), identifier);
 }
 
 static GPUType gpu_type_from_socket(const bNodeSocket &socket)
 {
-  switch (eNodeSocketDatatype(socket.type)) {
+  switch (socket.type) {
     case SOCK_FLOAT:
       return GPU_FLOAT;
     case SOCK_INT:
@@ -75,6 +74,7 @@ static GPUType gpu_type_from_socket(const bNodeSocket &socket)
           return GPU_NONE;
       }
     case SOCK_RGBA:
+    case SOCK_ROTATION:
       return GPU_VEC4;
     case SOCK_MATRIX:
       return GPU_MAT4;

@@ -18,10 +18,10 @@
 
 #include "ED_screen.hh"
 
-#include "BLI_listbase.h"
-#include "BLI_string.h"
-#include "BLI_string_utf8.h"
-#include "BLI_utildefines.h"
+#include "BLI_listbase.hh"
+#include "BLI_string.hh"
+#include "BLI_string_utf8.hh"
+#include "BLI_utildefines.hh"
 
 #include "BLT_translation.hh"
 
@@ -907,7 +907,7 @@ void butstore_free(Block *block, ButStore *bs_handle)
     block = bs_handle->block;
   }
 
-  BLI_freelistN(&bs_handle->items);
+  bs_handle->items.free_no_destruct();
   BLI_assert(BLI_findindex(&block->butstore, bs_handle) != -1);
   BLI_remlink(&block->butstore, bs_handle);
 
@@ -988,7 +988,7 @@ void butstore_update(Block *block)
     }
   }
 
-  if (LIKELY(block->butstore.first == nullptr)) {
+  if (block->butstore.first == nullptr) [[likely]] {
     return;
   }
 

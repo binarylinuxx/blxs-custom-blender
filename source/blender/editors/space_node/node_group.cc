@@ -12,10 +12,10 @@
 
 #include "DNA_node_types.h"
 
-#include "BLI_math_vector.h"
+#include "BLI_math_vector_c.hh"
 #include "BLI_math_vector_types.hh"
-#include "BLI_string.h"
-#include "BLI_string_utf8.h"
+#include "BLI_string.hh"
+#include "BLI_string_utf8.hh"
 #include "BLI_vector.hh"
 
 #include "BLT_translation.hh"
@@ -301,7 +301,7 @@ static void node_group_ungroup(bContext &C, bNodeTree &ntree, bNode &group_node)
   /* Delete the original group instance. */
   bke::node_remove_node(&bmain, ntree, group_node, true);
 
-  /* Select ungrouped nodes*/
+  /* Select ungrouped nodes. */
   for (bNode *node : copied_nodes.node_map().values()) {
     bke::node_set_selected(*node, true);
   }
@@ -641,8 +641,8 @@ static bNode *node_group_make_from_nodes(const bContext &C,
   gnode->id = id_cast<ID *>(ngroup);
 
   if (const std::optional<Bounds<float2>> bounds = node_location_bounds(nodes_to_group)) {
-    gnode->location[0] = bounds->center()[0];
-    gnode->location[1] = bounds->center()[1];
+    gnode->location[0] = nearest_node_grid_coord(bounds->center()[0]);
+    gnode->location[1] = nearest_node_grid_coord(bounds->center()[1]);
   }
   if (bNode *parent = ed::space_node::find_common_parent_node(nodes_to_group)) {
     gnode->parent = parent;
@@ -663,7 +663,9 @@ static bNode *node_group_make_from_node_declaration(bContext &C,
   bNodeTree *wrapper_group = bke::node_tree_add_tree(
       &bmain, bke::node_label(ntree, src_node), ntree.idname);
   wrapper_group->color_tag = int(bke::node_color_tag(src_node));
-  wrapper_group->default_group_node_width = src_node.width;
+  if (!src_node.is_reroute()) {
+    wrapper_group->default_group_node_width = src_node.width;
+  }
 
   NodeSetInterfaceParams params;
   /* Hidden sockets are exposed but hidden on the group node instance. */
@@ -689,7 +691,10 @@ static bNode *node_group_make_from_node_declaration(bContext &C,
 
   /* Position node exactly where the old node was. */
   gnode->parent = src_node.parent;
-  gnode->width = std::max<float>(src_node.width, GROUP_NODE_MIN_WIDTH);
+
+  if (!src_node.is_reroute()) {
+    gnode->width = std::max<float>(src_node.width, bke::NodeWidth::GroupMin);
+  }
   copy_v2_v2(gnode->location, src_node.location);
 
   BKE_main_ensure_invariants(bmain);

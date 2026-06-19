@@ -9,7 +9,7 @@
 #include "DNA_outliner_types.h"
 #include "DNA_sequence_types.h"
 
-#include "BLI_listbase.h"
+#include "BLI_listbase.hh"
 
 #include "BLT_translation.hh"
 
@@ -55,7 +55,7 @@ Strip &TreeElementStrip::get_strip() const
 
 StripType TreeElementStrip::get_strip_type() const
 {
-  return StripType(strip_.type);
+  return strip_.type;
 }
 
 /* -------------------------------------------------------------------- */

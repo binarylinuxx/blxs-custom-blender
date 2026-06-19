@@ -13,14 +13,14 @@
 
 #include "MEM_guardedalloc.h"
 
-#include "BLI_ghash.h"
+#include "BLI_ghash.hh"
 #include "BLI_kdopbvh.hh"
-#include "BLI_math_geom.h"
-#include "BLI_math_matrix.h"
-#include "BLI_math_vector.h"
-#include "BLI_memarena.h"
-#include "BLI_polyfill_2d.h"
-#include "BLI_utildefines.h"
+#include "BLI_math_geom_c.hh"
+#include "BLI_math_matrix_c.hh"
+#include "BLI_math_vector_c.hh"
+#include "BLI_memarena.hh"
+#include "BLI_polyfill_2d.hh"
+#include "BLI_utildefines.hh"
 
 #include "BKE_bvhutils.hh"
 
@@ -47,7 +47,7 @@
 #  include "../bmesh/bmesh_py_types.hh"
 #endif /* MATH_STANDALONE */
 
-#include "BLI_strict_flags.h" /* IWYU pragma: keep. Keep last. */
+#include "BLI_strict_flags.hh" /* IWYU pragma: keep. Keep last. */
 
 namespace blender {
 
@@ -531,7 +531,7 @@ static bool py_bvhtree_overlap_cb(void *userdata, int index_a, int index_b, int 
   int verts_shared = 0;
 
   if (tree_a == tree_b) {
-    if (UNLIKELY(index_a == index_b)) {
+    if (index_a == index_b) [[unlikely]] {
       return false;
     }
 
@@ -727,13 +727,14 @@ static PyObject *C_BVHTree_FromPolygons(PyObject * /*cls*/, PyObject *args, PyOb
         break;
       }
 
-      if (PySequence_Fast_GET_SIZE(py_tricoords_fast) != 3) {
+      const Py_ssize_t py_tricoords_num = PySequence_Fast_GET_SIZE(py_tricoords_fast);
+      if (py_tricoords_num != 3) {
         Py_DECREF(py_tricoords_fast);
         PyErr_Format(PyExc_ValueError,
                      "%s: non triangle found at index %d with length of %d",
                      error_prefix,
                      i,
-                     PySequence_Fast_GET_SIZE(py_tricoords_fast));
+                     py_tricoords_num);
         valid = false;
         break;
       }
@@ -742,7 +743,7 @@ static PyObject *C_BVHTree_FromPolygons(PyObject * /*cls*/, PyObject *args, PyOb
 
       for (j = 0; j < 3; j++) {
         tri[j] = PyC_Long_AsU32(py_tricoords_fast_items[j]);
-        if (UNLIKELY(tri[j] >= uint(coords_len))) {
+        if (tri[j] >= uint(coords_len)) [[unlikely]] {
           PyErr_Format(PyExc_ValueError,
                        "%s: index %d must be less than %d",
                        error_prefix,
@@ -796,7 +797,7 @@ static PyObject *C_BVHTree_FromPolygons(PyObject * /*cls*/, PyObject *args, PyOb
 
       for (j = 0; j < py_tricoords_len; j++) {
         plink->poly[j] = PyC_Long_AsU32(py_tricoords_fast_items[j]);
-        if (UNLIKELY(plink->poly[j] >= uint(coords_len))) {
+        if (plink->poly[j] >= uint(coords_len)) [[unlikely]] {
           PyErr_Format(PyExc_ValueError,
                        "%s: index %d must be less than %d",
                        error_prefix,
@@ -1036,7 +1037,7 @@ static const Mesh *bvh_get_mesh(const char *funcname,
   const CustomData_MeshMasks data_masks = CD_MASK_BAREMESH;
   const bool use_render = DEG_get_mode(depsgraph) == DAG_EVAL_RENDER;
   *r_free_mesh = false;
-  Mesh *mesh;
+  const Mesh *mesh;
 
   /* Write the display mesh into the dummy mesh */
   if (use_deform) {

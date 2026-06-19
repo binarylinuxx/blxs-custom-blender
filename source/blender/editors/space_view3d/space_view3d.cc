@@ -20,11 +20,11 @@
 
 #include "MEM_guardedalloc.h"
 
-#include "BLI_listbase.h"
-#include "BLI_math_matrix.h"
-#include "BLI_math_vector.h"
-#include "BLI_string_utf8.h"
-#include "BLI_utildefines.h"
+#include "BLI_listbase.hh"
+#include "BLI_math_matrix_c.hh"
+#include "BLI_math_vector_c.hh"
+#include "BLI_string_utf8.hh"
+#include "BLI_utildefines.hh"
 
 #include "BKE_asset.hh"
 #include "BKE_context.hh"
@@ -1063,7 +1063,7 @@ static void view3d_header_region_listener(const wmRegionListenerParams *params)
       break;
     case NC_MATERIAL:
       /* For the canvas picker. */
-      if (wmn->data == ND_SHADING_LINKS) {
+      if (ELEM(wmn->data, ND_SHADING_LINKS, ND_NODES)) {
         ED_region_tag_redraw(region);
       }
       break;
@@ -1557,8 +1557,7 @@ static void view3d_space_blend_read_data(BlendDataReader *reader, SpaceLink *sl)
 
   v3d->runtime = View3D_Runtime{};
 
-  if (v3d->gpd) {
-    BLO_read_struct(reader, bGPdata, &v3d->gpd);
+  if (BLO_read_struct_nonnull(reader, bGPdata, &v3d->gpd)) {
     BKE_gpencil_blend_read_data(reader, v3d->gpd);
   }
   BLO_read_struct(reader, RegionView3D, &v3d->localvd);

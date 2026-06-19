@@ -324,6 +324,8 @@ if(WITH_BLENDER)
       documents
       dot
       downarrow_hlt
+      download
+      download_done
       driver
       driver_distance
       driver_rotational_difference
@@ -428,6 +430,7 @@ if(WITH_BLENDER)
       grid
       grip
       grip_v
+      grip_corner_bottom_right
       group
       group_bone
       group_uvs

@@ -5,7 +5,6 @@
 #ifdef WITH_OPENVDB
 #  include <openvdb/openvdb.h>
 #  include <openvdb/tools/Dense.h>
-#  include <openvdb/tools/ValueTransformer.h>
 #  include <openvdb/tools/LevelSetUtil.h>
 #  include <openvdb/tools/ParticlesToLevelSet.h>
 #endif
@@ -26,7 +25,7 @@ static void node_declare(NodeDeclarationBuilder &b)
   b.add_input<decl::Float>("Density"_ustr)
       .default_value(1.0f)
       .description("Volume density per voxel")
-      .supports_field();
+      .structure_type(StructureType::Field);
   b.add_input<decl::Float>("Background"_ustr).description("Value for voxels outside of the cube");
 
   b.add_input<decl::Vector>("Min"_ustr)
@@ -158,51 +157,10 @@ static void node_geo_exec(GeoNodeExecParams params)
   openvdb::FloatGrid::Ptr grid = openvdb::FloatGrid::create(background);
   grid->setGridClass(openvdb::GRID_FOG_VOLUME);
 
-  /* First pass: allocate all leaf nodes that contain non-zero voxels.
-   * This must be serial because tree topology modification is not thread-safe. */
-  {
-    auto accessor = grid->getAccessor();
-    for (int x = 0; x < resolution.x; x++) {
-      for (int y = 0; y < resolution.y; y++) {
-        const int64_t row_start = (int64_t(x) * resolution.y + y) * resolution.z;
-        for (int z = 0; z < resolution.z; z++) {
-          if (densities[row_start + z] != 0.0f) {
-            accessor.touchLeaf(openvdb::Coord(x, y, z));
-          }
-        }
-      }
-    }
-  }
-
-  /* Second pass: fill each leaf node in parallel — leaf nodes are fully independent. */
-  openvdb::tools::foreach (
-      grid->tree().beginLeaf(), [&](const openvdb::FloatTree::LeafIter &leaf_iter) {
-        auto &leaf = *leaf_iter;
-        const openvdb::CoordBBox leaf_bbox = leaf.getNodeBoundingBox();
-        for (int x = leaf_bbox.min().x(); x <= leaf_bbox.max().x(); x++) {
-          if (x >= resolution.x) {
-            continue;
-          }
-          for (int y = leaf_bbox.min().y(); y <= leaf_bbox.max().y(); y++) {
-            if (y >= resolution.y) {
-              continue;
-            }
-            const int64_t row_start = (int64_t(x) * resolution.y + y) * resolution.z;
-            for (int z = leaf_bbox.min().z(); z <= leaf_bbox.max().z(); z++) {
-              if (z >= resolution.z) {
-                continue;
-              }
-              const float val = densities[row_start + z];
-              if (val != 0.0f) {
-                leaf.setValueOn(openvdb::Coord(x, y, z), val);
-              }
-            }
-          }
-        }
-      },
-      true /* threaded */);
-
-  grid->pruneGrid(0.0f);
+  openvdb::tools::Dense<float, openvdb::tools::LayoutZYX> dense_grid{
+      openvdb::math::CoordBBox({0, 0, 0}, {resolution.x - 1, resolution.y - 1, resolution.z - 1}),
+      densities.data()};
+  openvdb::tools::copyFromDense(dense_grid, *grid, 0.0f);
 
   grid->transform().postScale(openvdb::math::Vec3<double>(scale_fac.x, scale_fac.y, scale_fac.z));
   grid->transform().postTranslate(

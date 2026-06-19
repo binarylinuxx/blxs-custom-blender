@@ -1,6 +1,12 @@
 {
   description = "Blender from local source";
 
+  nixConfig = {
+    extra-substituters = [
+      "https://blxs-custom-blender.cachix.org"
+    ];
+  };
+
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-utils.url = "github:numtide/flake-utils";
@@ -119,7 +125,7 @@
             rocmPackages      = pkgs.rocmPackages;
           }).overrideAttrs (old: {
             inherit src;
-            version = "5.2.0-alpha";
+            version = "5.3.0-alpha";
             pname   = bname;
 
             patches = pkgs.lib.optionals rocmSupport [
@@ -169,10 +175,22 @@
             };
           });
       in
-      {
-        packages.default = mkBlender {
+      let
+        blender = mkBlender {
           rocmSupport = rocmAvailable;
         };
+      in
+      {
+        packages = {
+          default = blender;
+          blxs-custom-blender = blender;
+        };
+
+        apps.default = {
+          type = "app";
+          program = "${blender}/bin/blender";
+        };
+
         devShells.default = pkgs.mkShell {
           inputsFrom = [ self.packages.${system}.default ];
           nativeBuildInputs = with pkgs; [ cmake git-lfs pkg-config ];

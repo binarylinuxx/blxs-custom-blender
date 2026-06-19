@@ -11,7 +11,7 @@
 #include "../../BPy_Convert.h"
 #include "../../Interface0D/BPy_SVertex.h"
 
-#include "BLI_sys_types.h"
+#include "BLI_sys_types.hh"
 
 using namespace Freestyle;
 
@@ -31,18 +31,22 @@ PyDoc_STRVAR(
     "border edge, then it doesn't have any face on its right, and thus Face\n"
     "a is None.\n"
     "\n"
-    ".. method:: __init__()\n"
-    "            __init__(brother)\n"
-    "            __init__(first_vertex, second_vertex)\n"
+    ".. method:: __init__(*args)\n"
+    "\n"
+    "   Accepted call signatures:\n"
+    "\n"
+    "   - ``__init__()``\n"
+    "   - ``__init__(brother)``\n"
+    "   - ``__init__(first_vertex, second_vertex)``\n"
     "\n"
     "   Builds an :class:`FEdgeSharp` using the default constructor,\n"
     "   copy constructor, or between two :class:`SVertex` objects.\n"
     "\n"
-    "   :arg brother: An FEdgeSharp object.\n"
+    "   :param brother: An FEdgeSharp object.\n"
     "   :type brother: :class:`FEdgeSharp`\n"
-    "   :arg first_vertex: The first SVertex object.\n"
+    "   :param first_vertex: The first SVertex object.\n"
     "   :type first_vertex: :class:`SVertex`\n"
-    "   :arg second_vertex: The second SVertex object.\n"
+    "   :param second_vertex: The second SVertex object.\n"
     "   :type second_vertex: :class:`SVertex`\n");
 static int FEdgeSharp_init(BPy_FEdgeSharp *self, PyObject *args, PyObject *kwds)
 {

@@ -37,7 +37,7 @@ namespace blender {
 
 static int pygpu_framebuffer_valid_check(BPyGPUFrameBuffer *bpygpu_fb)
 {
-  if (UNLIKELY(bpygpu_fb->fb == nullptr)) {
+  if (bpygpu_fb->fb == nullptr) [[unlikely]] {
     PyErr_SetString(PyExc_ReferenceError, "GPU framebuffer was freed, no further access is valid");
     return -1;
   }
@@ -46,7 +46,7 @@ static int pygpu_framebuffer_valid_check(BPyGPUFrameBuffer *bpygpu_fb)
 
 #define PYGPU_FRAMEBUFFER_CHECK_OBJ(bpygpu) \
   { \
-    if (UNLIKELY(pygpu_framebuffer_valid_check(bpygpu) == -1)) { \
+    if (pygpu_framebuffer_valid_check(bpygpu) == -1) [[unlikely]] { \
       return nullptr; \
     } \
   } \
@@ -412,7 +412,9 @@ static PyObject *pygpu_framebuffer__tp_new(PyTypeObject * /*self*/, PyObject *ar
 PyDoc_STRVAR(
     /* Wrap. */
     pygpu_framebuffer_is_bound_doc,
-    "Checks if this is the active frame-buffer in the context.");
+    "Checks if this is the active frame-buffer in the context.\n"
+    "\n"
+    ":type: bool\n");
 static PyObject *pygpu_framebuffer_is_bound(BPyGPUFrameBuffer *self, void * /*type*/)
 {
   PYGPU_FRAMEBUFFER_CHECK_OBJ(self);
@@ -834,7 +836,7 @@ static PyMethodDef pygpu_framebuffer__tp_methods[] = {
 #endif
 
 /* Ideally type aliases would de-duplicate:
- * `GPUTexture | dict[str, int | GPUTexture]` in this doc-string. */
+ * `GPUTexture | dict[str, int | GPUTexture]` in this docstring. */
 PyDoc_STRVAR(
     /* Wrap. */
     pygpu_framebuffer__tp_doc,

@@ -1,9 +1,9 @@
 
 msgid ""
 msgstr ""
-"Project-Id-Version: Blender 5.2.0 Alpha (b'a0888131c6dd')\n"
+"Project-Id-Version: Blender 5.2.0 LTS Beta (b'e899b48ea546')\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-04-06 09:15+0000\n"
+"POT-Creation-Date: 2026-06-15 07:32+0000\n"
 "PO-Revision-Date: 2026-02-14 01:12+0000\n"
 "Last-Translator: Timo Hoetmer <timo@timohoetmer.nl>\n"
 "Language-Team: Dutch <https://translate.blender.org/projects/blender-ui/ui/nl/>\n"
@@ -1427,6 +1427,30 @@ msgid "Active EditBone"
 msgstr "Actieve EditBone"
 
 
+msgid "Is Editable"
+msgstr "Is Bewerkbaar"
+
+
+msgid "Show assets from all of the listed asset libraries"
+msgstr "Toon assets van alle vermelde asset bibliotheken"
+
+
+msgid "Show the assets currently available in this Blender session"
+msgstr "Toon de assets momenteel beschikbaar in deze Blender sessie"
+
+
+msgid "Essentials"
+msgstr "Essenties"
+
+
+msgid "Custom"
+msgstr "Aangepast"
+
+
+msgid "Show assets from the asset libraries configured in the Preferences"
+msgstr "Toon assets van de asset-bibliotheek ingesteld in Voorkeuren"
+
+
 msgid "User Asset Libraries"
 msgstr "Gebruiker Asset Bibliotheken"
 
@@ -1449,6 +1473,18 @@ msgstr "Beschrijving"
 
 msgid "The type of license this asset is distributed under. An empty license name does not necessarily indicate that this is free of licensing terms. Contact the author if any clarification is needed."
 msgstr "Het type licentie waaronder deze asset gedistribueerd wordt. Een lege licentie-naam betekent niet gelijk dat deze vrij van licentievoorwaarden is. Neem contact op met de maker als er verduidelijking nodig is."
+
+
+msgid "Link"
+msgstr "Koppel"
+
+
+msgid "Append"
+msgstr "Bijvoegen"
+
+
+msgid "Append (Reuse Data)"
+msgstr "Bijvoegen (Hergebruik Data)"
 
 
 msgid "Tags"
@@ -1489,30 +1525,6 @@ msgstr "Regio's voor snelle toegang naar assets"
 
 msgid "Choose the asset library to display assets from"
 msgstr "Kies het asset-bibliotheek om assets van te tonen"
-
-
-msgid "Show assets from all of the listed asset libraries"
-msgstr "Toon assets van alle vermelde asset bibliotheken"
-
-
-msgid "Show the assets currently available in this Blender session"
-msgstr "Toon de assets momenteel beschikbaar in deze Blender sessie"
-
-
-msgid "Essentials"
-msgstr "Essenties"
-
-
-msgid "Show the basic building blocks and utilities coming with Blender"
-msgstr "Toon de basis-bouwblokken en utilities die met Blender komen"
-
-
-msgid "Custom"
-msgstr "Aangepast"
-
-
-msgid "Show assets from the asset libraries configured in the Preferences"
-msgstr "Toon assets van de asset-bibliotheek ingesteld in Voorkeuren"
 
 
 msgid "Activate Operator"
@@ -3301,10 +3313,6 @@ msgid "Index"
 msgstr "Index"
 
 
-msgid "Is Editable"
-msgstr "Is Bewerkbaar"
-
-
 msgid "Visible"
 msgstr "Zichtbaar"
 
@@ -3802,16 +3810,8 @@ msgid "ACES 1.3 sRGB"
 msgstr "ACES 1.3 sRGB"
 
 
-msgid "ACES 1.0 Output Transform for SDR D65 video, limited to Rec.709 gamut"
-msgstr "ACES 1.0 Output Transformatie voor SDR D65 video, beperkt tot Rec.709 gamut"
-
-
 msgid "ACES 2.0 sRGB"
 msgstr "ACES 2.0 sRGB"
-
-
-msgid "ACES 2 Output Transform for 100 nit SDR Rec709"
-msgstr "ACES 2 Output Transformatie voor 100 nit SDR Rec709"
 
 
 msgid "ACES2065-1"
@@ -3834,20 +3834,12 @@ msgid "AgX Base sRGB"
 msgstr "AgX Base sRGB"
 
 
-msgid "AgX Base Image Encoding for sRGB Display"
-msgstr "AgX Base Image Encoding voor sRGB Scherm"
-
-
 msgid "AgX Log"
 msgstr "AgX Log"
 
 
 msgid "Khronos PBR Neutral sRGB"
 msgstr "Khronos PBR Neutral sRGB"
-
-
-msgid "Khronos PBR Neutral Image Encoding for sRGB Display"
-msgstr "Khronos PBR Neutral Image Encoding voor sRGB Scherm"
 
 
 msgid "Linear CIE-XYZ D65"
@@ -4564,18 +4556,6 @@ msgid "Title"
 msgstr "Titel"
 
 
-msgid "Link"
-msgstr "Koppel"
-
-
-msgid "Append"
-msgstr "Bijvoegen"
-
-
-msgid "Append (Reuse Data)"
-msgstr "Bijvoegen (Hergebruik Data)"
-
-
 msgid "Additional"
 msgstr "Aanvullende"
 
@@ -4768,6 +4748,10 @@ msgid "Top (X-Y)"
 msgstr "Bovenkant (X-Y)"
 
 
+msgid "Dynamic"
+msgstr "Dynamisch"
+
+
 msgid "Show Value"
 msgstr "Toon Waarde"
 
@@ -4874,10 +4858,6 @@ msgstr "Lokaal"
 
 msgid "Global"
 msgstr "Globaal"
-
-
-msgid "Dynamic"
-msgstr "Dynamisch"
 
 
 msgid "Color Type"
@@ -5771,6 +5751,10 @@ msgid "Mirror"
 msgstr "Spiegel"
 
 
+msgid "Rigid Body"
+msgstr "Star Lichaam"
+
+
 msgid "Local View"
 msgstr "Lokale Scherm"
 
@@ -5791,6 +5775,14 @@ msgid "Import"
 msgstr "Importeren"
 
 
+msgid "Relations"
+msgstr "Relaties"
+
+
+msgid "Show/Hide"
+msgstr "Toon/Verberg"
+
+
 msgid "Light"
 msgstr "Licht"
 
@@ -5799,28 +5791,12 @@ msgid "Add Image"
 msgstr "Voeg Afbeelding Toe"
 
 
-msgid "Relations"
-msgstr "Relaties"
-
-
-msgid "Rigid Body"
-msgstr "Star Lichaam"
+msgid "Hooks"
+msgstr "Haken"
 
 
 msgid "Quick Effects"
 msgstr "Snelle Effecten"
-
-
-msgid "Show/Hide"
-msgstr "Toon/Verberg"
-
-
-msgid "Convert"
-msgstr "Converteer"
-
-
-msgid "Hooks"
-msgstr "Haken"
 
 
 msgid "Clear Transform"
@@ -5829,6 +5805,14 @@ msgstr "Maak Transformatie Leeg"
 
 msgid "Names"
 msgstr "Namen"
+
+
+msgid "Convert"
+msgstr "Converteer"
+
+
+msgid "Linked"
+msgstr "Gekoppeld"
 
 
 msgid "Layout"
@@ -6294,10 +6278,6 @@ msgid "Hide the socket input value"
 msgstr "Verberg de aansluiting invoer waarde"
 
 
-msgid "Linked"
-msgstr "Gekoppeld"
-
-
 msgid "Is Output"
 msgstr "Is Uitvoer"
 
@@ -6357,11 +6337,6 @@ msgstr "Pas Project Toe"
 msgctxt "Operator"
 msgid "Import BVH"
 msgstr "Importeer BVH"
-
-
-msgctxt "Operator"
-msgid "Import SVG"
-msgstr "Importeer SVG"
 
 
 msgctxt "Operator"
@@ -6711,6 +6686,10 @@ msgstr "Collectie Index"
 msgctxt "Operator"
 msgid "Add Bone"
 msgstr "Voeg Bot Toe"
+
+
+msgid "Search"
+msgstr "Zoeken"
 
 
 msgctxt "Operator"
@@ -7345,6 +7324,11 @@ msgstr "Verberg Curves"
 
 msgid "Next Keyframe"
 msgstr "Volgende Sleutelframe"
+
+
+msgctxt "Operator"
+msgid "Local View"
+msgstr "Lokale Scherm"
 
 
 msgctxt "Operator"
@@ -9179,11 +9163,6 @@ msgid "Fly Navigation"
 msgstr "Vlieg Navigatie"
 
 
-msgctxt "Operator"
-msgid "Local View"
-msgstr "Lokale Scherm"
-
-
 msgid "Move the view"
 msgstr "Verplaats de weergave"
 
@@ -10352,8 +10331,8 @@ msgid "Light"
 msgstr "Licht"
 
 
-msgid "Search"
-msgstr "Zoeken"
+msgid "Cancel"
+msgstr "Annuleren"
 
 
 msgctxt "WindowManager"
@@ -10968,11 +10947,6 @@ msgid "Forward"
 msgstr "Vooruit"
 
 
-msgctxt "Operator"
-msgid "New Folder"
-msgstr "Nieuwe Map"
-
-
 msgid "When Appending"
 msgstr "Wanneer bij aan het voegen"
 
@@ -10995,6 +10969,11 @@ msgstr "Geluidsbestanden"
 
 msgid "Text Files"
 msgstr "Tekstbestanden"
+
+
+msgctxt "Operator"
+msgid "New Folder"
+msgstr "Nieuwe Map"
 
 
 msgctxt "Operator"
@@ -11788,6 +11767,11 @@ msgid "LineStyle"
 msgstr "LijnStijl"
 
 
+msgctxt "Key"
+msgid "Key"
+msgstr "Sleutel"
+
+
 msgid "lattices"
 msgstr "Roosters"
 
@@ -11834,10 +11818,6 @@ msgstr "Verwijder Aanpasser"
 
 msgid "Too many points selected: %d"
 msgstr "Teveel punten geselecteerd: %d"
-
-
-msgid "Cancel"
-msgstr "Annuleren"
 
 
 msgctxt "Curve"
@@ -11896,10 +11876,6 @@ msgstr "Niets om te gummen"
 
 msgid "Nothing selected"
 msgstr "Niets geselecteerd"
-
-
-msgid "Pin"
-msgstr "Prik"
 
 
 msgctxt "Operator"
@@ -12158,6 +12134,10 @@ msgid "No vertex selected"
 msgstr "Geen punten geselecteerd"
 
 
+msgid "No edges selected"
+msgstr "Geen randen geselecteerd"
+
+
 msgid "Use mouse"
 msgstr "Gebruik muis"
 
@@ -12168,10 +12148,6 @@ msgstr "Gebruik draaipunt"
 
 msgid "Set and use 3D cursor"
 msgstr "Plaats en gebruik 3D cursor"
-
-
-msgid "No edges selected"
-msgstr "Geen randen geselecteerd"
 
 
 msgid "No faces filled"
@@ -12388,11 +12364,6 @@ msgstr "Pak Bestand Uit"
 
 msgid "Flame"
 msgstr "Vlam"
-
-
-msgctxt "Key"
-msgid "Key"
-msgstr "Sleutel"
 
 
 msgid "Point is not found in given spline"

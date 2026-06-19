@@ -2,7 +2,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later */
 
-#include "BLI_string.h"
+#include "BLI_string.hh"
 
 #include "RNA_enum_types.hh"
 
@@ -105,9 +105,7 @@ class SocketSearchOp {
 
 static void node_gather_link_searches(GatherLinkSearchOpParams &params)
 {
-  if (!params.node_tree().typeinfo->validate_link(eNodeSocketDatatype(params.other_socket().type),
-                                                  SOCK_INT))
-  {
+  if (!params.node_tree().typeinfo->validate_link(params.other_socket().type, SOCK_INT)) {
     return;
   }
 

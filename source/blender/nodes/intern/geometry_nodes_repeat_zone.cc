@@ -13,8 +13,6 @@
 #include "BLT_translation.hh"
 
 #include "BLI_array_utils.hh"
-#include "BLI_map.hh"
-#include "BLI_mutex.hh"
 
 #include "DEG_depsgraph_query.hh"
 
@@ -93,12 +91,7 @@ class RepeatZoneSideEffectProvider : public lf::GraphExecutorSideEffectProvider 
   }
 };
 
-/**
- * Immutable graph structure for a given iteration count. Built once and reused across evaluations
- * that share the same iteration count. The graph and all objects it references (or_function,
- * wrappers, index_values) must outlive any execution that uses them.
- */
-struct RepeatZoneCachedGraph {
+struct RepeatEvalStorage {
   LinearAllocator<> allocator;
   VectorSet<lf::FunctionNode *> lf_body_nodes;
   lf::Graph graph;
@@ -106,22 +99,11 @@ struct RepeatZoneCachedGraph {
   std::optional<RepeatZoneSideEffectProvider> side_effect_provider;
   std::optional<RepeatBodyNodeExecuteWrapper> body_execute_wrapper;
   std::optional<lf::GraphExecutor> graph_executor;
-  /* Index values pointed to by graph socket default values — must stay alive with the graph. */
   Array<SocketValueVariant> index_values;
-  Vector<int> input_index_map;
-  Vector<int> output_index_map;
-};
-
-/**
- * Per-evaluation mutable state. Holds the graph executor's storage (node states etc.) which is
- * freshly initialised for every evaluation, plus a pointer to the (possibly cached) graph.
- */
-struct RepeatEvalStorage {
-  LinearAllocator<> allocator;
-  /* Non-owning pointer into the graph cache on LazyFunctionForRepeatZone. */
-  RepeatZoneCachedGraph *cached_graph = nullptr;
   void *graph_executor_storage = nullptr;
   bool multi_threading_enabled = false;
+  Vector<int> input_index_map;
+  Vector<int> output_index_map;
 };
 
 class LazyFunctionForRepeatZone : public LazyFunction {
@@ -131,9 +113,6 @@ class LazyFunctionForRepeatZone : public LazyFunction {
   const bNode &repeat_output_bnode_;
   const ZoneBuildInfo &zone_info_;
   const ZoneBodyFunction &body_fn_;
-
-  mutable Mutex graph_cache_mutex_;
-  mutable Map<int, std::unique_ptr<RepeatZoneCachedGraph>> graph_cache_;
 
  public:
   LazyFunctionForRepeatZone(const bNodeTree &btree,
@@ -162,7 +141,7 @@ class LazyFunctionForRepeatZone : public LazyFunction {
   {
     RepeatEvalStorage *s = static_cast<RepeatEvalStorage *>(storage);
     if (s->graph_executor_storage) {
-      s->cached_graph->graph_executor->destruct_storage(s->graph_executor_storage);
+      s->graph_executor->destruct_storage(s->graph_executor_storage);
     }
     std::destroy_at(s);
   }
@@ -184,86 +163,54 @@ class LazyFunctionForRepeatZone : public LazyFunction {
       params.set_output(iterations_usage_index, true);
     }
 
-    if (!eval_storage.cached_graph) {
-      const int iterations = std::max<int>(
-          0, params.get_input<SocketValueVariant>(zone_info_.indices.inputs.main[0]).get<int>());
-
-      eval_storage.cached_graph = this->get_or_build_cached_graph(
-          iterations, node_storage, user_data, local_user_data);
-
-      if (iterations >= 15) {
-        lazy_threading::send_hint();
-        eval_storage.multi_threading_enabled = true;
-      }
-
-      eval_storage.graph_executor_storage =
-          eval_storage.cached_graph->graph_executor->init_storage(eval_storage.allocator);
+    if (!eval_storage.graph_executor) {
+      /* Create the execution graph in the first evaluation. */
+      this->initialize_execution_graph(
+          params, eval_storage, node_storage, user_data, local_user_data);
     }
 
-    RepeatZoneCachedGraph &cached_graph = *eval_storage.cached_graph;
-
     /* Execute the graph for the repeat zone. */
-    lf::RemappedParams eval_graph_params{*cached_graph.graph_executor,
+    lf::RemappedParams eval_graph_params{*eval_storage.graph_executor,
                                          params,
-                                         cached_graph.input_index_map,
-                                         cached_graph.output_index_map,
+                                         eval_storage.input_index_map,
+                                         eval_storage.output_index_map,
                                          eval_storage.multi_threading_enabled};
     lf::Context eval_graph_context{
         eval_storage.graph_executor_storage, context.user_data, context.local_user_data};
-    cached_graph.graph_executor->execute(eval_graph_params, eval_graph_context);
+    eval_storage.graph_executor->execute(eval_graph_params, eval_graph_context);
   }
 
   /**
-   * Returns a cached graph for the given iteration count, building it if necessary.
-   * The returned pointer is stable for the lifetime of this LazyFunctionForRepeatZone.
+   * Generate a lazy-function graph that contains the loop body (`body_fn_`) as many times
+   * as there are iterations. Since this graph depends on the number of iterations, it can't be
+   * reused in general. We could consider caching a version of this graph per number of iterations,
+   * but right now that doesn't seem worth it. In practice, it takes much less time to create the
+   * graph than to execute it (for intended use cases of this generic implementation, more special
+   * case repeat loop evaluations could be implemented separately).
    */
-  RepeatZoneCachedGraph *get_or_build_cached_graph(
-      const int iterations,
-      const NodeGeometryRepeatOutput &node_storage,
-      GeoNodesUserData &user_data,
-      GeoNodesLocalUserData &local_user_data) const
+  void initialize_execution_graph(lf::Params &params,
+                                  RepeatEvalStorage &eval_storage,
+                                  const NodeGeometryRepeatOutput &node_storage,
+                                  GeoNodesUserData &user_data,
+                                  GeoNodesLocalUserData &local_user_data) const
   {
-    {
-      std::lock_guard lock{graph_cache_mutex_};
-      if (std::unique_ptr<RepeatZoneCachedGraph> *cached = graph_cache_.lookup_ptr(iterations)) {
-        return cached->get();
-      }
-    }
-
-    /* Build outside the lock — building is expensive and we don't want to block other threads
-     * with different iteration counts. Two threads racing on the same count is unlikely but safe:
-     * the loser's result is simply discarded below. */
-    std::unique_ptr<RepeatZoneCachedGraph> new_graph = this->build_cached_graph(
-        iterations, node_storage, user_data, local_user_data);
-
-    std::lock_guard lock{graph_cache_mutex_};
-    /* lookup_or_add_cb keeps the first entry if two threads raced. */
-    return graph_cache_
-        .lookup_or_add_cb(iterations, [&]() { return std::move(new_graph); })
-        .get();
-  }
-
-  /**
-   * Generate a lazy-function graph that contains the loop body (`body_fn_`) as many times as
-   * there are iterations. The resulting graph is immutable after construction and may be reused
-   * across evaluations that share the same iteration count.
-   */
-  std::unique_ptr<RepeatZoneCachedGraph> build_cached_graph(
-      const int iterations,
-      const NodeGeometryRepeatOutput &node_storage,
-      GeoNodesUserData &user_data,
-      GeoNodesLocalUserData &local_user_data) const
-  {
-    auto cached = std::make_unique<RepeatZoneCachedGraph>();
-
     const int num_repeat_items = node_storage.items_num;
     const int num_border_links = body_fn_.indices.inputs.border_links.size();
+
+    /* Number of iterations to evaluate. */
+    const int iterations = std::max<int>(
+        0, params.get_input<SocketValueVariant>(zone_info_.indices.inputs.main[0]).get<int>());
+
+    if (iterations >= 10) {
+      /* Constructing and running the repeat zone has some overhead so that it's probably worth
+       * trying to do something else in the meantime already. */
+      lazy_threading::send_hint();
+    }
 
     /* Show a warning when the inspection index is out of range. */
     if (node_storage.inspection_index > 0) {
       if (node_storage.inspection_index >= iterations) {
-        if (geo_eval_log::GeoTreeLogger *tree_logger = local_user_data.try_get_tree_logger(
-                user_data))
+        if (eval_log::NodeTreeLogger *tree_logger = local_user_data.try_get_tree_logger(user_data))
         {
           tree_logger->node_warnings.append(
               *tree_logger->allocator,
@@ -277,7 +224,7 @@ class LazyFunctionForRepeatZone : public LazyFunction {
     const int main_inputs_offset = 1;
     const int body_inputs_offset = 1;
 
-    lf::Graph &lf_graph = cached->graph;
+    lf::Graph &lf_graph = eval_storage.graph;
 
     Vector<lf::GraphInputSocket *> lf_inputs;
     Vector<lf::GraphOutputSocket *> lf_outputs;
@@ -292,7 +239,7 @@ class LazyFunctionForRepeatZone : public LazyFunction {
     }
 
     /* Create body nodes. */
-    VectorSet<lf::FunctionNode *> &lf_body_nodes = cached->lf_body_nodes;
+    VectorSet<lf::FunctionNode *> &lf_body_nodes = eval_storage.lf_body_nodes;
     for ([[maybe_unused]] const int i : IndexRange(iterations)) {
       lf::FunctionNode &lf_node = lf_graph.add_function(*body_fn_.function);
       lf_body_nodes.add_new(&lf_node);
@@ -301,19 +248,19 @@ class LazyFunctionForRepeatZone : public LazyFunction {
     /* Create nodes for combining border link usages. A border link is used when any of the loop
      * bodies uses the border link, so an "or" node is necessary. */
     Array<lf::FunctionNode *> lf_border_link_usage_or_nodes(num_border_links);
-    cached->or_function.emplace(iterations);
+    eval_storage.or_function.emplace(iterations);
     for (const int i : IndexRange(num_border_links)) {
-      lf::FunctionNode &lf_node = lf_graph.add_function(*cached->or_function);
+      lf::FunctionNode &lf_node = lf_graph.add_function(*eval_storage.or_function);
       lf_border_link_usage_or_nodes[i] = &lf_node;
     }
 
     const bool use_index_values = zone_.input_node()->output_socket(0).is_directly_linked();
 
     if (use_index_values) {
-      cached->index_values.reinitialize(iterations);
+      eval_storage.index_values.reinitialize(iterations);
       threading::parallel_for(IndexRange(iterations), 1024, [&](const IndexRange range) {
         for (const int i : range) {
-          cached->index_values[i].set(i);
+          eval_storage.index_values[i].set(i);
         }
       });
     }
@@ -323,7 +270,7 @@ class LazyFunctionForRepeatZone : public LazyFunction {
     for (const int iter_i : lf_body_nodes.index_range()) {
       lf::FunctionNode &lf_node = *lf_body_nodes[iter_i];
       const SocketValueVariant *index_value = use_index_values ?
-                                                  &cached->index_values[iter_i] :
+                                                  &eval_storage.index_values[iter_i] :
                                                   &static_unused_index;
       lf_node.input(body_fn_.indices.inputs.main[0]).set_default_value(index_value);
       for (const int i : IndexRange(num_border_links)) {
@@ -414,36 +361,38 @@ class LazyFunctionForRepeatZone : public LazyFunction {
     /* Create a mapping from parameter indices inside of this graph to parameters of the repeat
      * zone. The main complexity below stems from the fact that the iterations input is handled
      * outside of this graph. */
-    cached->output_index_map.reinitialize(outputs_.size() - 1);
-    cached->input_index_map.resize(inputs_.size() - 1);
-    array_utils::fill_index_range<int>(cached->input_index_map, 1);
+    eval_storage.output_index_map.reinitialize(outputs_.size() - 1);
+    eval_storage.input_index_map.resize(inputs_.size() - 1);
+    array_utils::fill_index_range<int>(eval_storage.input_index_map, 1);
 
     Vector<const lf::GraphInputSocket *> lf_graph_inputs = lf_inputs.as_span().drop_front(1);
 
     const int iteration_usage_index = zone_info_.indices.outputs.input_usages[0];
     array_utils::fill_index_range<int>(
-        cached->output_index_map.as_mutable_span().take_front(iteration_usage_index));
+        eval_storage.output_index_map.as_mutable_span().take_front(iteration_usage_index));
     array_utils::fill_index_range<int>(
-        cached->output_index_map.as_mutable_span().drop_front(iteration_usage_index),
+        eval_storage.output_index_map.as_mutable_span().drop_front(iteration_usage_index),
         iteration_usage_index + 1);
 
     Vector<const lf::GraphOutputSocket *> lf_graph_outputs = lf_outputs.as_span().take_front(
         iteration_usage_index);
     lf_graph_outputs.extend(lf_outputs.as_span().drop_front(iteration_usage_index + 1));
 
-    cached->body_execute_wrapper.emplace();
-    cached->body_execute_wrapper->repeat_output_bnode_ = &repeat_output_bnode_;
-    cached->body_execute_wrapper->lf_body_nodes_ = &lf_body_nodes;
-    cached->side_effect_provider.emplace();
-    cached->side_effect_provider->repeat_output_bnode_ = &repeat_output_bnode_;
-    cached->side_effect_provider->lf_body_nodes_ = lf_body_nodes;
+    eval_storage.body_execute_wrapper.emplace();
+    eval_storage.body_execute_wrapper->repeat_output_bnode_ = &repeat_output_bnode_;
+    eval_storage.body_execute_wrapper->lf_body_nodes_ = &lf_body_nodes;
+    eval_storage.side_effect_provider.emplace();
+    eval_storage.side_effect_provider->repeat_output_bnode_ = &repeat_output_bnode_;
+    eval_storage.side_effect_provider->lf_body_nodes_ = lf_body_nodes;
 
-    cached->graph_executor.emplace(lf_graph,
-                                   std::move(lf_graph_inputs),
-                                   std::move(lf_graph_outputs),
-                                   nullptr,
-                                   &*cached->side_effect_provider,
-                                   &*cached->body_execute_wrapper);
+    eval_storage.graph_executor.emplace(lf_graph,
+                                        std::move(lf_graph_inputs),
+                                        std::move(lf_graph_outputs),
+                                        nullptr,
+                                        &*eval_storage.side_effect_provider,
+                                        &*eval_storage.body_execute_wrapper);
+    eval_storage.graph_executor_storage = eval_storage.graph_executor->init_storage(
+        eval_storage.allocator);
 
     /* Log graph for debugging purposes. */
     const bNodeTree &btree_orig = *DEG_get_original(&btree_);
@@ -452,8 +401,6 @@ class LazyFunctionForRepeatZone : public LazyFunction {
       btree_orig.runtime->logged_zone_graphs->graph_by_zone_id.lookup_or_add_cb(
           repeat_output_bnode_.identifier, [&]() { return lf_graph.to_dot(); });
     }
-
-    return cached;
   }
 
   std::string input_name(const int i) const override
