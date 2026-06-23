@@ -138,6 +138,12 @@
 
             postPatch = pkgs.lib.optionalString rocmSupport ''
               substituteInPlace extern/hipew/src/hipew.c \
+                --replace-fail '"libamdhip64.so.7"' \
+                '"${pkgs.rocmPackages.clr}/lib/libamdhip64.so"'
+              substituteInPlace extern/hipew/src/hipew.c \
+                --replace-fail '"/opt/rocm/lib/libamdhip64.so.7"' \
+                '"${pkgs.rocmPackages.clr}/lib/libamdhip64.so"'
+              substituteInPlace extern/hipew/src/hipew.c \
                 --replace-fail '"/opt/rocm/hip/lib/libamdhip64.so.${pkgs.lib.versions.major pkgs.rocmPackages.clr.version}"' \
                 '"${pkgs.rocmPackages.clr}/lib/libamdhip64.so"'
               substituteInPlace extern/hipew/src/hipew.c \
