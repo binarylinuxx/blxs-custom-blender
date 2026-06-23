@@ -149,6 +149,10 @@
               pkgs.rocmPackages.rocm-comgr
             ];
 
+            pythonPath = (old.pythonPath or []) ++ [
+              pkgs.python313Packages.cattrs
+            ];
+
             postFixup = pkgs.lib.optionalString rocmSupport ''
               patchelf --add-rpath \
                 "${rocmLLVM.lib}/lib:${rocmClangUW.lib}/lib:${pkgs.rocmPackages.rocm-comgr}/lib" \
