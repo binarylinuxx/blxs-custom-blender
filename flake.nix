@@ -107,7 +107,11 @@
             pname   = bname;
             patches =
               builtins.filter
-                (patch: baseNameOf (toString patch) != "fix-quite-clog-warning.patch")
+                (patch:
+                  ! builtins.elem (baseNameOf (toString patch)) [
+                    "fix-quite-clog-warning.patch"
+                    "hiprt-3-compat.patch"
+                  ])
                 (old.patches or [ ])
               ++ pkgs.lib.optionals rocmSupport [
                 ./hiprt-3-compat.patch
