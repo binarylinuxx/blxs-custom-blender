@@ -35,7 +35,7 @@
 
               openshadinglanguage = (prev.openshadinglanguage.override {
                 stdenv = prev.stdenv;
-                llvmPackages_19 = prev.rocmPackages.llvm // {
+                llvmPackages = prev.rocmPackages.llvm // {
                   libclang = rocmClangUW;
                 };
               }).overrideAttrs (old: {
