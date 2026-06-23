@@ -82,6 +82,20 @@
                   echo "Replaced: $relpath"
                 fi
               done || true
+
+          for relpath in \
+            release/datafiles/startup.blend \
+            release/datafiles/preview.blend \
+            release/datafiles/preview_grease_pencil.blend \
+            release/datafiles/splash.png
+          do
+            datafile="${blenderDataSrc}/$relpath"
+            if [ ! -f "$relpath" ] && [ -f "$datafile" ]; then
+              mkdir -p "$(dirname "$relpath")"
+              cp "$datafile" "$relpath"
+              echo "Restored: $relpath"
+            fi
+          done
         '';
 
         commonMeta = {
