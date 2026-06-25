@@ -8,7 +8,7 @@
   };
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/4100e830e085863741bc69b156ec4ccd53ab5be0";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
@@ -29,7 +29,29 @@
                 stdenv = prev.clangStdenv;
               };
 
+              rocmLLVM    = prev.rocmPackages.llvm.llvm;
+              rocmClang   = prev.rocmPackages.llvm.clang;
+              rocmClangUW = prev.rocmPackages.llvm.clang-unwrapped;
+
+              openshadinglanguage = (prev.openshadinglanguage.override {
+                stdenv = prev.stdenv;
+                llvmPackages_19 = prev.rocmPackages.llvm // {
+                  libclang = rocmClangUW;
+                };
+              }).overrideAttrs (old: {
+                cmakeFlags = (old.cmakeFlags or []) ++ [
+                  "-DCMAKE_C_COMPILER=${rocmClang}/bin/clang"
+                  "-DCMAKE_CXX_COMPILER=${rocmClang}/bin/clang++"
+                  "-DLLVM_DIR=${rocmLLVM.dev}/lib/cmake/llvm"
+                  "-DClang_DIR=${rocmClangUW.dev}/lib/cmake/clang"
+                  "-DCMAKE_CXX_FLAGS=-I${rocmClangUW.dev}/include"
+                  "-DCMAKE_C_FLAGS=-I${rocmClangUW.dev}/include"
+                ];
+                NIX_LDFLAGS = "${old.NIX_LDFLAGS or ""} -L${rocmClangUW.lib}/lib";
+              });
+
             in {
+              inherit openshadinglanguage;
               rocmPackages = prev.rocmPackages // {
                 rocm-comgr = prev.rocmPackages.rocm-comgr.overrideAttrs (old: {
                   patches = (old.patches or []) ++ [
